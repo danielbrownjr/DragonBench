@@ -1,16 +1,22 @@
 # Architecture
 
-DragonBench has three deliberately narrow boundaries:
+Each image is one board profile plus one experiment profile (see
+[experiment profiles](EXPERIMENT_PROFILES.md)). Within an image, DragonBench
+has three deliberately narrow boundaries:
 
 - `firmware/common`: workload names, run lifecycle, sequencing, and capability
-  semantics. It knows nothing about GPIOs or ESP-IDF drivers. `db_fan.c` holds
-  the bench fan-fixture stimulus lifecycle and tach arithmetic behind a small
-  hardware seam, so release-on-every-path is host-tested.
+  semantics. It knows nothing about GPIOs or ESP-IDF drivers. `db_experiment.h`
+  is the single place that reads the experiment-profile choice. `db_fan.c`
+  holds the fan-characterization stimulus lifecycle, gate-polarity mapping, and
+  tach arithmetic behind a small pad-level seam, so release-on-every-path and
+  both stage polarities are host-tested.
 - `firmware/targets/esp32s3`: direct ESP-IDF implementations for Wi-Fi, mDNS,
   HTTP, reset reason, SoC temperature, NVS, flash, inactive-OTA writes, reboot,
-  and TCP traffic. No other target backend exists. `fan_fixture.c` (LEDC
-  stimulus, PCNT tach) compiles only into the explicit fan-fixture profile; see
-  [fan fixture](FAN_FIXTURE.md).
+  and TCP traffic. No other target backend exists. `fan_characterization.c`
+  (static gate drive, LEDC stimulus, PCNT tach) compiles only into the
+  fan-characterization experiment profile; see
+  [fan characterization](FAN_CHARACTERIZATION.md). `build_provenance.cmake`
+  records the source revision on every build.
 - `cli`, `web`, and `protocol`: clients and the stable public contract. They do
   not have privileged behavior paths. Multi-step orchestration, such as the
   fan duty sweep, lives on the host; firmware runs one primitive at a time.

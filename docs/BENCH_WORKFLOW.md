@@ -16,9 +16,14 @@ or electrical pass/fail limits. `OTA_PARTITION_WRITE` erases, writes, and verifi
 only an inactive OTA slot; it never selects that slot for boot. Controlled reboot
 is single-shot and never forms a reboot loop.
 
-On a bench fan-fixture build, `FAN_PWM_HOLD` and the host `fan-sweep` command
-provide the stimulus and raw tach counts. Wiring, semantics, and limits are in
-[fan fixture](FAN_FIXTURE.md). Fan supply current, PWM-line and tach waveforms,
+Record `/api/v1/device` with every capture: it names the board profile,
+experiment profile, build revision, and device, and its
+`measurement_provenance` says which quantities DragonBench measures and which
+the bench must supply.
+
+On a `fan-characterization` image, `FAN_PWM_HOLD` and the host `fan-sweep`
+command provide the stimulus and raw tach counts. Wiring, semantics, and limits
+are in [fan characterization](FAN_CHARACTERIZATION.md). Fan supply current, PWM-line and tach waveforms,
 optical RPM, temperature, and airflow remain external evidence.
 
 Recommended external fields are PSU/input voltage, `+5V_SYS_GATE`,
