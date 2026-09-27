@@ -59,6 +59,19 @@ class ExperimentProfileTests(unittest.TestCase):
         listed = re.search(r"^all_experiments=\(([^)]*)\)", script, re.M).group(1).split()
         self.assertEqual(sorted(listed), sorted(n for n in EXPECTED.values() if n != "baseline"))
 
+    def test_every_experiment_has_a_configured_hosted_build(self):
+        # Refusal and static checks are not enough: hosted CI must compile each
+        # non-baseline experiment's real backend, with runner-local wiring.
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text()
+        jobs = re.split(r"^  (?=[\w-]+:\n)", workflow.split("\njobs:\n", 1)[1], flags=re.M)
+        for name in (n for n in EXPECTED.values() if n != "baseline"):
+            configured = [job for job in jobs
+                          if re.search(rf"command: bash ci/build-esp32s3\.sh .+ {re.escape(name)}[ \t]*$", job, re.M)]
+            self.assertTrue(configured, f"{name} has no configured ESP-IDF CI build")
+            for job in configured:
+                self.assertIn(f"cat > sdkconfig.{name}.local", job, name)
+                self.assertIn("CI COMPILE FIXTURE", job, name)
+
     def test_code_selects_experiments_only_through_db_experiment_h(self):
         for path in (ROOT / "firmware").rglob("*.[ch]"):
             if path == EXPERIMENT_H:

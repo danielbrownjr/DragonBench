@@ -28,6 +28,49 @@ jobs:
           path: .
           command: bash ci/build-esp32s3.sh ${{ matrix.profile }} baseline
 
+  fan-characterization-configured:
+    name: ESP-IDF 5.3.5 / ESP32-S3 ${{ matrix.board }} / fan-characterization (compile fixture)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # CI COMPILE FIXTURES ONLY. These GPIO numbers exist so hosted CI
+        # compiles the real fan-characterization backend. They are NOT
+        # DragonBench reference wiring, NOT JumpJet wiring, and NOT hardware
+        # recommendations; no fixture has been wired. Each set passes the
+        # firmware's reserved/conflict guards for its board (TinyS3[D] GPIO38
+        # RF switch, N8R8 Octal PSRAM 33-37, strapping, USB, flash, console).
+        # The two boards use opposite gate sink levels so both stage
+        # polarities compile. PPR stays unknown.
+        include:
+          - board: tinys3d
+            gate_gpio: 4
+            gate_sink_level: 1
+            tach_gpio: 5
+          - board: n8r8
+            gate_gpio: 6
+            gate_sink_level: 0
+            tach_gpio: 7
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Write compile-only fixture wiring (runner workspace only, never committed)
+        run: |
+          cat > sdkconfig.fan-characterization.local <<EOF
+          # CI COMPILE FIXTURE ONLY: not reference, JumpJet, or recommended wiring.
+          CONFIG_DB_FAN_PWM_GATE_GPIO=${{ matrix.gate_gpio }}
+          CONFIG_DB_FAN_GATE_SINK_LEVEL=${{ matrix.gate_sink_level }}
+          CONFIG_DB_FAN_TACH_GPIO=${{ matrix.tach_gpio }}
+          EOF
+          cat sdkconfig.fan-characterization.local
+      - name: Clean configure and build
+        uses: espressif/esp-idf-ci-action@v1
+        with:
+          esp_idf_version: v5.3.5
+          target: esp32s3
+          path: .
+          command: bash ci/build-esp32s3.sh ${{ matrix.board }} fan-characterization
+
   fan-characterization-refusal:
     name: ESP-IDF 5.3.5 / fan-characterization refuses a build without wiring
     runs-on: ubuntu-latest
