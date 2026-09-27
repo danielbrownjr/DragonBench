@@ -8,7 +8,13 @@ rail stability, and reset/brownout behavior.
 
 It is not JumpJet or DragonBreath firmware, a performance benchmark, a generic
 HAL, a device-control application, or an authority for product safety limits.
-The firmware contains no heater or fan GPIOs and exposes no actuator API.
+Normal builds contain no heater or fan GPIOs and expose no actuator API. An
+explicit, off-by-default [bench fan-fixture profile](docs/FAN_FIXTURE.md) adds
+a single stimulus workload, `FAN_PWM_HOLD`, that drives only the gate of an
+external open-drain stage and counts tach edges for fan characterization. That
+is characterization equipment, not product fan control: no build has a heater
+path, a closed loop, thresholds, or fan-safety policy, and
+`heater_capability` and `fan_control_capability` are `false` in every build.
 
 Version 0.1.0 builds for two ESP32-S3 board profiles, both with 8 MB flash and
 8 MB PSRAM: the N8R8 module (Octal SPI PSRAM, CH343P USB-UART bridge; the
@@ -83,7 +89,7 @@ python -m cli.dragonbench traffic-peer --port 5001 --mode echo --duration 60
 ```
 
 See [bench workflow](docs/BENCH_WORKFLOW.md), [target profile](docs/TARGET_ESP32S3.md),
-and [protocol contract](protocol/openapi.yaml).
+[fan fixture](docs/FAN_FIXTURE.md), and [protocol contract](protocol/openapi.yaml).
 
 ## Validation status
 
@@ -108,6 +114,11 @@ mDNS on both interfaces have been validated. The `/setup` page itself has not
 yet been exercised on hardware, and workload execution and electrical
 characterization remain unvalidated there too. See
 [TinyS3[D] profile](docs/TARGET_TINYS3D.md).
+
+The bench fan-fixture profile builds with ESP-IDF 5.3.5 once its wiring is
+stated, and refuses to build without it. Its stimulus lifecycle and tach
+arithmetic pass host tests. Its fixture GPIOs are not yet defined, and no part
+of it has run on hardware.
 
 ## Scope rule
 

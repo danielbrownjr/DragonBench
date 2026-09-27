@@ -3,12 +3,17 @@
 DragonBench has three deliberately narrow boundaries:
 
 - `firmware/common`: workload names, run lifecycle, sequencing, and capability
-  semantics. It knows nothing about GPIOs or ESP-IDF drivers.
+  semantics. It knows nothing about GPIOs or ESP-IDF drivers. `db_fan.c` holds
+  the bench fan-fixture stimulus lifecycle and tach arithmetic behind a small
+  hardware seam, so release-on-every-path is host-tested.
 - `firmware/targets/esp32s3`: direct ESP-IDF implementations for Wi-Fi, mDNS,
   HTTP, reset reason, SoC temperature, NVS, flash, inactive-OTA writes, reboot,
-  and TCP traffic. No other target backend exists.
+  and TCP traffic. No other target backend exists. `fan_fixture.c` (LEDC
+  stimulus, PCNT tach) compiles only into the explicit fan-fixture profile; see
+  [fan fixture](FAN_FIXTURE.md).
 - `cli`, `web`, and `protocol`: clients and the stable public contract. They do
-  not have privileged behavior paths.
+  not have privileged behavior paths. Multi-step orchestration, such as the
+  fan duty sweep, lives on the host; firmware runs one primitive at a time.
 
 There is intentionally no universal embedded HAL. A future target may implement
 the protocol and workload semantics directly when a concrete need exists.

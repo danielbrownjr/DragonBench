@@ -4,16 +4,74 @@ info:
   version: 0.1.0
 paths:
   /api/v1/device:
-    get: {summary: Device identity and immutable product boundary}
+    get:
+      summary: Device identity and immutable product boundary
+      description: >-
+        heater_capability and fan_control_capability are false in every build:
+        DragonBench never implements product heater or fan control, closed
+        loops, thresholds, or safety policy. bench_stimulus.fan_pwm_fixture is
+        true only in a bench fan-characterization fixture build, which can
+        drive an external open-drain stage that sinks a fan PWM line; that
+        build also reports bench_stimulus.fan_fixture with its configured
+        gate/tach GPIOs, gate_sink_level, line_state (released,
+        driven, release_failed), tach_edge, and tach_ppr (null when unknown).
+      responses:
+        "200":
+          description: Identity
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  heater_capability: {type: boolean, enum: [false]}
+                  fan_control_capability: {type: boolean, enum: [false]}
+                  bench_stimulus:
+                    type: object
+                    required: [fan_pwm_fixture]
+                    properties:
+                      fan_pwm_fixture: {type: boolean}
+                      fan_fixture:
+                        type: object
+                        description: Present only when fan_pwm_fixture is true
+                        properties:
+                          stimulus: {type: string, enum: [pwm_sink_via_external_open_drain_stage]}
+                          fan_response: {type: string, enum: [uncharacterized]}
+                          line_state: {type: string, enum: [unconfigured, released, driven, release_failed]}
+                          pwm_gate_gpio: {type: integer}
+                          gate_sink_level: {type: integer, enum: [0, 1]}
+                          tach_gpio: {type: integer}
+                          tach_edge: {type: string, enum: [falling]}
+                          tach_ready: {type: boolean}
+                          tach_ppr: {type: integer, nullable: true}
   /api/v1/status:
     get: {summary: Current run, network, uptime, and reset state}
   /api/v1/sensors:
     get: {summary: Truthful DUT signal registry}
   /api/v1/workloads:
-    get: {summary: Supported and unsupported workload registry}
+    get:
+      summary: Supported and unsupported workload registry
+      description: >-
+        FAN_PWM_HOLD is listed with class bench_stimulus. It is "available"
+        only in a fan-fixture build and "unsupported" (reason "requires
+        fan-fixture build") otherwise.
   /api/v1/runs:
     post:
       summary: Start one validated workload
+      description: >-
+        FAN_PWM_HOLD (fan-fixture builds only) drives the external stage gate
+        so the fan PWM line is sunk for sink_duty_pct of each period at
+        pwm_hz, for duration_ms, while PCNT counts tach falling edges. It
+        requires pwm_hz, sink_duty_pct, and duration_ms, and pwm_hz or
+        sink_duty_pct on any other workload is rejected. The line is released
+        at boot, at run end, on abort, and on every error. No sink duty,
+        including 0 and 100, and the released state are asserted to mean
+        stopped or full speed. phase_start/phase_end parameters carry pwm_hz,
+        sink_duty_pct, duration_ms, applied_sink_duty_pct, and
+        duty_resolution_bits; phase_end metrics carry tach_edges,
+        window_start_us, window_us, edge_hz, ppr, rpm, and released_us
+        (esp_timer microseconds since boot). ppr and rpm are null unless a PPR
+        was configured with evidence; a failed release is reported as
+        "released": false with fixture_error and a fault event.
       requestBody:
         required: true
         content:
@@ -27,6 +85,8 @@ paths:
                 host: {type: string, maxLength: 253}
                 port: {type: integer, minimum: 1, maximum: 65535}
                 rate_bps: {type: integer, minimum: 0}
+                pwm_hz: {type: integer, minimum: 10, maximum: 50000, description: "FAN_PWM_HOLD only. Fixture generator range, not a fan specification"}
+                sink_duty_pct: {type: number, minimum: 0, maximum: 100, multipleOf: 0.1, description: "FAN_PWM_HOLD only. Percent of each period the external stage sinks the fan PWM line"}
   /api/v1/runs/{id}:
     get:
       summary: Read one run

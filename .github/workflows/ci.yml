@@ -28,6 +28,20 @@ jobs:
           path: .
           command: bash ci/build-esp32s3.sh ${{ matrix.profile }}
 
+  fan-fixture-refusal:
+    name: ESP-IDF 5.3.5 / fan fixture refuses unconfigured build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Build fixture overlay without wiring
+        uses: espressif/esp-idf-ci-action@v1
+        with:
+          esp_idf_version: v5.3.5
+          target: esp32s3
+          path: .
+          command: bash ci/build-esp32s3.sh tinys3d fanfixture-unconfigured
+
   python-host:
     name: Python host contracts
     runs-on: ubuntu-latest
@@ -56,21 +70,36 @@ jobs:
           set +e
           python -m cli.dragonbench run IDLE --duration 0
           status=$?
+          test "$status" -eq 2
+          python -m cli.dragonbench fan-sweep --pwm-hz 0 --low-pct 0 --high-pct 10 --step-pct 5 --order up --hold-ms 1000 --output sweep.json
+          status=$?
           set -e
           test "$status" -eq 2
 
   native-c:
-    name: Native C state machine
+    name: Native C state machine (${{ matrix.profile }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - profile: normal
+            defines: ""
+          - profile: fan-fixture
+            defines: "-DCONFIG_DB_FAN_FIXTURE=1"
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
       - name: Compile with warnings and sanitizers
-        run: >-
-          gcc -std=c11 -Wall -Wextra -Wpedantic -Werror
-          -fsanitize=address,undefined -fno-omit-frame-pointer
-          -Ifirmware/common/include
-          firmware/common/db_run.c firmware/common/db_network.c tests/native/test_db_run.c
-          -o test_db_run
-      - name: Execute state-machine test
-        run: ./test_db_run
+        run: |
+          for test in test_db_run test_db_fan; do
+            gcc -std=c11 -Wall -Wextra -Wpedantic -Werror \
+              -fsanitize=address,undefined -fno-omit-frame-pointer ${{ matrix.defines }} \
+              -Ifirmware/common/include \
+              firmware/common/db_run.c firmware/common/db_network.c firmware/common/db_fan.c \
+              tests/native/$test.c -o $test
+          done
+      - name: Execute state-machine and fan-fixture tests
+        run: |
+          ./test_db_run
+          ./test_db_fan

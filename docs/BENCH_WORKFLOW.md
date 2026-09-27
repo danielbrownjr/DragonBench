@@ -16,6 +16,11 @@ or electrical pass/fail limits. `OTA_PARTITION_WRITE` erases, writes, and verifi
 only an inactive OTA slot; it never selects that slot for boot. Controlled reboot
 is single-shot and never forms a reboot loop.
 
+On a bench fan-fixture build, `FAN_PWM_HOLD` and the host `fan-sweep` command
+provide the stimulus and raw tach counts. Wiring, semantics, and limits are in
+[fan fixture](FAN_FIXTURE.md). Fan supply current, PWM-line and tach waveforms,
+optical RPM, temperature, and airflow remain external evidence.
+
 Recommended external fields are PSU/input voltage, `+5V_SYS_GATE`,
 `+5V_MCU_FEED`, `+5V_MCU`, average/peak current, minimum rail voltage, reset or
 brownout occurrence, and Wi-Fi disconnect/reconnect.
