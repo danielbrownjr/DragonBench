@@ -17,6 +17,9 @@ void fan_characterization_boot(void);
 db_fan_hold_outcome_t fan_characterization_hold(const db_run_request_t *request, bool (*should_abort)(void),
                                        db_fan_hold_result_t *result);
 
+// Tach capture configured and readable; required before any FAN_PWM_HOLD.
+bool fan_characterization_tach_ready(void);
+
 // Configured pulses per revolution; 0 means unknown and RPM is never derived.
 uint32_t fan_characterization_ppr(void);
 

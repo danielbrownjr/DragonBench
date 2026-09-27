@@ -235,6 +235,8 @@ db_fan_hold_outcome_t fan_characterization_hold(const db_run_request_t *request,
     return outcome;
 }
 
+bool fan_characterization_tach_ready(void) { return tach_is_ready(NULL); }
+
 uint32_t fan_characterization_ppr(void) { return CONFIG_DB_FAN_TACH_PPR; }
 
 void fan_characterization_describe(cJSON *parent) {

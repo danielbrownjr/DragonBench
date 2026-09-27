@@ -12,3 +12,4 @@ artifacts/
 sdkconfig.fan-characterization.local
 test_db_fan
 test_db_fan.exe
+idf-build.log

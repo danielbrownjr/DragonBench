@@ -316,6 +316,7 @@ def execute(args: argparse.Namespace, client: Client) -> Any:
                 raise ClientError("device has no run to export")
         payload = {
             "source": "dut_reported",
+            "device": client.request("GET", "/api/v1/device"),
             "run": client.request("GET", f"/api/v1/runs/{run_id}"),
             "events": client.request("GET", "/api/v1/events"),
             "external_measurements": None,

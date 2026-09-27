@@ -7,6 +7,7 @@
 #include <unistd.h>
 
 #include "cJSON.h"
+#include "db_build_provenance.h"
 #include "db_experiment.h"
 #include "db_fan.h"
 #include "db_network.h"
@@ -370,14 +371,51 @@ static esp_err_t send_json(httpd_req_t *req, cJSON *root, int status) {
     return err;
 }
 
+// Where each quantity of interest comes from. "dut.<peripheral>" is measured
+// by this firmware, "derived.<rule>" is computed from DUT data, and "external"
+// is owned by bench instruments; DragonBench reports no value for it. Each
+// experiment profile adds only what it actually acquires or needs.
+static void add_measurement_provenance(cJSON *parent) {
+    cJSON *m = cJSON_AddObjectToObject(parent, "measurement_provenance");
+    cJSON_AddStringToObject(m, "soc_temperature", "dut.esp32s3_temperature_sensor");
+    cJSON_AddStringToObject(m, "wifi_rssi", "dut.esp32s3_wifi");
+    cJSON_AddStringToObject(m, "supply_voltage", "external");
+    cJSON_AddStringToObject(m, "supply_current", "external");
+    cJSON_AddStringToObject(m, "rail_voltage", "external");
+    cJSON_AddStringToObject(m, "reset_and_brownout", "external");
+#if DB_EXPERIMENT_FAN_CHARACTERIZATION
+    cJSON_AddStringToObject(m, "fan_tach_edges", "dut.esp32s3_pcnt");
+    cJSON_AddStringToObject(m, "fan_speed",
+                            fan_characterization_ppr() ? "derived.fan_tach_edges_and_configured_ppr" : "external");
+    cJSON_AddStringToObject(m, "fan_pwm_line_waveform", "external");
+    cJSON_AddStringToObject(m, "fan_supply_voltage", "external");
+    cJSON_AddStringToObject(m, "fan_supply_current", "external");
+    cJSON_AddStringToObject(m, "fan_airflow", "external");
+    cJSON_AddStringToObject(m, "fan_temperature", "external");
+#endif
+}
+
+// Revision this image was built from; empty SHA / "unknown" when the build
+// could not establish it (see build_provenance.cmake).
+static void add_build(cJSON *parent) {
+    cJSON *b = cJSON_AddObjectToObject(parent, "build");
+    cJSON_AddStringToObject(b, "firmware_version", CONFIG_DB_FIRMWARE_VERSION);
+    if (DB_BUILD_GIT_SHA[0]) cJSON_AddStringToObject(b, "git_sha", DB_BUILD_GIT_SHA);
+    else cJSON_AddNullToObject(b, "git_sha");
+    cJSON_AddStringToObject(b, "source_tree", DB_BUILD_SOURCE_TREE);
+    cJSON_AddStringToObject(b, "esp_idf", esp_get_idf_version());
+}
+
 static cJSON *identity_json(void) {
     cJSON *o = cJSON_CreateObject();
     cJSON_AddStringToObject(o, "product", "DragonBench");
     cJSON_AddStringToObject(o, "target", CONFIG_DB_TARGET_NAME);
+    cJSON_AddStringToObject(o, "board_profile", CONFIG_DB_TARGET_NAME);
+    cJSON_AddStringToObject(o, "experiment_profile", DB_EXPERIMENT_PROFILE_NAME);
     cJSON_AddStringToObject(o, "firmware_version", CONFIG_DB_FIRMWARE_VERSION);
+    add_build(o);
     cJSON_AddStringToObject(o, "device_id", device_id);
     cJSON_AddStringToObject(o, "image_class", "characterization");
-    cJSON_AddStringToObject(o, "experiment_profile", DB_EXPERIMENT_PROFILE_NAME);
     // Product actuator capabilities are absent in every build, fixture included.
     cJSON_AddBoolToObject(o, "heater_capability", false);
     cJSON_AddBoolToObject(o, "fan_control_capability", false);
@@ -386,7 +424,7 @@ static cJSON *identity_json(void) {
 #if DB_EXPERIMENT_FAN_CHARACTERIZATION
     fan_characterization_describe(bench);
 #endif
-    cJSON_AddStringToObject(o, "measurement_authority", "external_bench_equipment");
+    add_measurement_provenance(o);
     return o;
 }
 
@@ -448,6 +486,11 @@ static esp_err_t sensors_get(httpd_req_t *req) {
                sta_state == DB_STA_CONNECTED);
     add_sensor(a, "supply_voltage", "MCU supply voltage", "V", "none", "unsupported", 0, false);
     add_sensor(a, "supply_current", "MCU supply current", "A", "none", "unsupported", 0, false);
+#if DB_EXPERIMENT_FAN_CHARACTERIZATION
+    // Counted per FAN_PWM_HOLD window and reported in its phase_end metrics.
+    add_sensor(a, "fan_tach_edges", "Fan tach falling edges", "edges", "pcnt",
+               fan_characterization_tach_ready() ? "available" : "unavailable", 0, false);
+#endif
     return send_json(req, root, 200);
 }
 
@@ -793,13 +836,14 @@ static const char landing[] =
 "    var net=data.network_connected;"
 "    grid.appendChild(metricTile('Network',net===true?'connected':net===false?'disconnected':undefined,net===true?'connected':net===false?'disconnected':undefined));"
 "    grid.appendChild(metricTile('Run ID',data.run_id));"
-"    grid.appendChild(metricTile('Measurement authority',data.measurement_authority));"
+"    grid.appendChild(metricTile('Experiment profile',data.experiment_profile));"
 "    var heater=role('capability-heater'),fan=role('capability-fan');"
 "    if(typeof data.heater_capability==='boolean'){heater.textContent=data.heater_capability?'PRESENT':'ABSENT';heater.dataset.status=data.heater_capability?'error':'unsupported'}"
 "    if(typeof data.fan_control_capability==='boolean'){fan.textContent=data.fan_control_capability?'PRESENT':'ABSENT';fan.dataset.status=data.fan_control_capability?'error':'unsupported'}"
 "    var stimulus=role('capability-fan-stimulus'),bench=data.bench_stimulus;"
 "    if(bench&&typeof bench.fan_pwm_fixture==='boolean'){stimulus.textContent=bench.fan_pwm_fixture?'BENCH FIXTURE':'ABSENT';stimulus.dataset.status=bench.fan_pwm_fixture?'running':'unsupported'}"
-"    role('identity').textContent=(data.target||'target —')+' · firmware '+(data.firmware_version||'—');"
+"    var build=data.build||{},sha=typeof build.git_sha==='string'?build.git_sha.slice(0,12):'unknown';"
+"    role('identity').textContent=(data.board_profile||data.target||'target —')+' · '+(data.experiment_profile||'profile —')+' · firmware '+(data.firmware_version||'—')+' · '+sha+(build.source_tree==='dirty'?' (dirty)':'');"
 "  }"
 "  function renderSensors(data){"
 "    var list=role('sensor-fields');clear(list);"
@@ -1245,7 +1289,13 @@ void app_main(void) {
     char reset_metrics[64];
     snprintf(reset_metrics, sizeof(reset_metrics), "{\"reason\":\"%s\"}", reset_reason_text);
     const char *prior_run = previous_reboot_run_id[0] ? previous_reboot_run_id : NULL;
-    emit_event("boot", NULL, prior_run, NULL, NULL, NULL);
+    // Image identity in the first event, so a serial log alone names what ran.
+    char image[192];
+    snprintf(image, sizeof(image),
+             "{\"board_profile\":\"%s\",\"experiment_profile\":\"%s\",\"git_sha\":%s%s%s,\"source_tree\":\"%s\"}",
+             CONFIG_DB_TARGET_NAME, DB_EXPERIMENT_PROFILE_NAME, DB_BUILD_GIT_SHA[0] ? "\"" : "",
+             DB_BUILD_GIT_SHA[0] ? DB_BUILD_GIT_SHA : "null", DB_BUILD_GIT_SHA[0] ? "\"" : "", DB_BUILD_SOURCE_TREE);
+    emit_event("boot", NULL, prior_run, NULL, image, NULL);
     emit_event("reset_reason", NULL, prior_run, NULL, NULL, reset_metrics);
     antenna_init();
     if (!start_wifi()) {
