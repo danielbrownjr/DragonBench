@@ -9,7 +9,7 @@ from cli.dragonbench.main import (
 
 
 class FakeFanDevice:
-    """Minimal stand-in for a fan-fixture build's HTTP API."""
+    """Minimal stand-in for a fan-characterization device's HTTP API."""
 
     def __init__(self, fixture=True, results=None, polls_until_complete=1, refuse_at=None):
         self.fixture = fixture
@@ -30,6 +30,7 @@ class FakeFanDevice:
         self.calls.append((method, path, body))
         if path == "/api/v1/device":
             return {"product": "DragonBench", "fan_control_capability": False,
+                    "experiment_profile": "fan-characterization" if self.fixture else "baseline",
                     "bench_stimulus": {"fan_pwm_fixture": self.fixture}}
         if method == "POST" and path == "/api/v1/runs":
             index = len(self.runs)

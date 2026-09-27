@@ -7,23 +7,14 @@
 //
 // Everything here is platform-neutral so the stimulus lifecycle and the tach
 // arithmetic are testable on a host. GPIO and peripheral access lives only in
-// firmware/targets/esp32s3/main/fan_fixture.c, behind db_fan_ops_t.
+// firmware/targets/esp32s3/main/fan_characterization.c, behind db_fan_ops_t,
+// and is compiled only into the fan-characterization experiment profile.
 
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
-#if defined(ESP_PLATFORM)
-#include "sdkconfig.h"
-#endif
-
-// Normal profiles leave CONFIG_DB_FAN_FIXTURE unset; only the fan-fixture
-// overlay (sdkconfig.defaults.fanfixture) turns the stimulus on.
-#if defined(CONFIG_DB_FAN_FIXTURE) && CONFIG_DB_FAN_FIXTURE
-#define DB_FAN_FIXTURE_BUILD 1
-#else
-#define DB_FAN_FIXTURE_BUILD 0
-#endif
+#include "db_experiment.h"
 
 // Fixture generator limits, not fan specifications. The upper bound keeps at
 // least DB_FAN_MIN_RESOLUTION_BITS of duty resolution (0.1 % steps) from the

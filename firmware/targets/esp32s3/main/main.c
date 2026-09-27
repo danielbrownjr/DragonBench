@@ -7,10 +7,11 @@
 #include <unistd.h>
 
 #include "cJSON.h"
+#include "db_experiment.h"
 #include "db_fan.h"
 #include "db_network.h"
 #include "db_run.h"
-#include "fan_fixture.h"
+#include "fan_characterization.h"
 #include "driver/gpio.h"
 #include "driver/temperature_sensor.h"
 #include "esp_attr.h"
@@ -327,13 +328,13 @@ static void workload_task(void *unused) {
         }
         case DB_CONTROLLED_REBOOT:
             ok = wait_abortable(run.request.duration_ms); break;
-#if DB_FAN_FIXTURE_BUILD
+#if DB_EXPERIMENT_FAN_CHARACTERIZATION
         case DB_FAN_PWM_HOLD: {
             db_fan_hold_result_t hold;
-            ok = fan_fixture_hold(&run.request, should_abort, &hold) == DB_FAN_HOLD_PASS;
+            ok = fan_characterization_hold(&run.request, should_abort, &hold) == DB_FAN_HOLD_PASS;
             // A fixture error (including a failed release) is a fault even during abort.
             fixture_fault = hold.error != NULL;
-            if (!db_fan_format_metrics(metrics, sizeof(metrics), &hold, fan_fixture_ppr()))
+            if (!db_fan_format_metrics(metrics, sizeof(metrics), &hold, fan_characterization_ppr()))
                 snprintf(metrics, sizeof(metrics), "{\"metrics_overflow\":true,\"released\":%s}",
                          hold.released ? "true" : "false");
             break;
@@ -376,13 +377,14 @@ static cJSON *identity_json(void) {
     cJSON_AddStringToObject(o, "firmware_version", CONFIG_DB_FIRMWARE_VERSION);
     cJSON_AddStringToObject(o, "device_id", device_id);
     cJSON_AddStringToObject(o, "image_class", "characterization");
+    cJSON_AddStringToObject(o, "experiment_profile", DB_EXPERIMENT_PROFILE_NAME);
     // Product actuator capabilities are absent in every build, fixture included.
     cJSON_AddBoolToObject(o, "heater_capability", false);
     cJSON_AddBoolToObject(o, "fan_control_capability", false);
     cJSON *bench = cJSON_AddObjectToObject(o, "bench_stimulus");
-    cJSON_AddBoolToObject(bench, "fan_pwm_fixture", DB_FAN_FIXTURE_BUILD);
-#if DB_FAN_FIXTURE_BUILD
-    fan_fixture_describe(bench);
+    cJSON_AddBoolToObject(bench, "fan_pwm_fixture", DB_EXPERIMENT_FAN_CHARACTERIZATION);
+#if DB_EXPERIMENT_FAN_CHARACTERIZATION
+    fan_characterization_describe(bench);
 #endif
     cJSON_AddStringToObject(o, "measurement_authority", "external_bench_equipment");
     return o;
@@ -457,7 +459,7 @@ static esp_err_t workloads_get(httpd_req_t *req) {
         cJSON_AddStringToObject(o, "status", db_workload_supported((db_workload_t)i) ? "available" : "unsupported");
         if (i == DB_FAN_PWM_HOLD) {
             cJSON_AddStringToObject(o, "class", "bench_stimulus");
-            if (!db_workload_supported(DB_FAN_PWM_HOLD)) cJSON_AddStringToObject(o, "reason", "requires fan-fixture build");
+            if (!db_workload_supported(DB_FAN_PWM_HOLD)) cJSON_AddStringToObject(o, "reason", "requires fan-characterization experiment profile");
         }
         cJSON_AddItemToArray(a, o);
     }
@@ -712,7 +714,7 @@ static const char landing[] =
 "</header>"
 "<section class=\"banner\" data-role=\"actuator-boundary\" aria-labelledby=\"actuator-boundary-heading\">"
 "  <h2 id=\"actuator-boundary-heading\">DragonBench characterization image</h2>"
-"  <p><strong>No product actuator support.</strong> This image has no heater or product fan-control path. A bench fan-fixture build can only drive an external open-drain PWM stimulus stage for characterization, with no closed loop or thresholds. All voltage, current, and rail evidence remains owned by external bench equipment.</p>"
+"  <p><strong>No product actuator support.</strong> This image has no heater or product fan-control path. The fan-characterization experiment profile can only drive an external open-drain PWM stimulus stage for characterization, with no closed loop or thresholds. All voltage, current, and rail evidence remains owned by external bench equipment.</p>"
 "</section>"
 "<section class=\"capabilities\" aria-label=\"Actuator capability boundary\">"
 "  <div class=\"capability\">"
@@ -1224,8 +1226,8 @@ static void antenna_init(void) {
 }
 
 void app_main(void) {
-#if DB_FAN_FIXTURE_BUILD
-    fan_fixture_boot(); // release the stimulus line before anything else
+#if DB_EXPERIMENT_FAN_CHARACTERIZATION
+    fan_characterization_boot(); // release the stimulus line before anything else
 #endif
     ESP_ERROR_CHECK(nvs_flash_init());
     state_lock = xSemaphoreCreateMutex();

@@ -1,7 +1,0 @@
-# Bench-only fan-characterization fixture. NOT product fan control.
-# Layer after a board profile, then add a local, untracked overlay that states
-# the wired fixture. Every fixture GPIO defaults to -1, so a build without that
-# overlay fails with an #error naming the missing setting. Example:
-#   idf.py -D SDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.tinys3d;sdkconfig.defaults.fanfixture;sdkconfig.fanfixture.local" build
-# See docs/FAN_FIXTURE.md for what sdkconfig.fanfixture.local must contain.
-CONFIG_DB_FAN_FIXTURE=y

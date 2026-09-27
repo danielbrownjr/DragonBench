@@ -1,0 +1,9 @@
+# Experiment profile: fan-characterization. Bench stimulus and tach capture
+# through an EXTERNAL open-drain stage. NOT product fan control.
+# Layer after the board profile, then add a local, untracked overlay that
+# states the wired fixture. Every fixture setting defaults to unset, so a build
+# without that overlay fails with an #error naming the missing setting:
+#   idf.py -D SDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.tinys3d;sdkconfig.defaults.fan-characterization;sdkconfig.fan-characterization.local" build
+# See docs/FAN_CHARACTERIZATION.md for what the local overlay must contain.
+# CONFIG_DB_EXPERIMENT_BASELINE is not set
+CONFIG_DB_EXPERIMENT_FAN_CHARACTERIZATION=y

@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   esp32s3-build:
-    name: ESP-IDF 5.3.5 / ESP32-S3 ${{ matrix.profile }}
+    name: ESP-IDF 5.3.5 / ESP32-S3 ${{ matrix.profile }} / baseline
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -26,21 +26,21 @@ jobs:
           esp_idf_version: v5.3.5
           target: esp32s3
           path: .
-          command: bash ci/build-esp32s3.sh ${{ matrix.profile }}
+          command: bash ci/build-esp32s3.sh ${{ matrix.profile }} baseline
 
-  fan-fixture-refusal:
-    name: ESP-IDF 5.3.5 / fan fixture refuses unconfigured build
+  fan-characterization-refusal:
+    name: ESP-IDF 5.3.5 / fan-characterization refuses a build without wiring
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
-      - name: Build fixture overlay without wiring
+      - name: Build the experiment profile without its wiring overlay
         uses: espressif/esp-idf-ci-action@v1
         with:
           esp_idf_version: v5.3.5
           target: esp32s3
           path: .
-          command: bash ci/build-esp32s3.sh tinys3d fanfixture-unconfigured
+          command: bash ci/build-esp32s3.sh tinys3d fan-characterization --expect-refusal
 
   python-host:
     name: Python host contracts
@@ -77,16 +77,16 @@ jobs:
           test "$status" -eq 2
 
   native-c:
-    name: Native C state machine (${{ matrix.profile }})
+    name: Native C state machine (${{ matrix.experiment }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         include:
-          - profile: normal
+          - experiment: baseline
             defines: ""
-          - profile: fan-fixture
-            defines: "-DCONFIG_DB_FAN_FIXTURE=1"
+          - experiment: fan-characterization
+            defines: "-DCONFIG_DB_EXPERIMENT_FAN_CHARACTERIZATION=1"
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
@@ -99,7 +99,7 @@ jobs:
               firmware/common/db_run.c firmware/common/db_network.c firmware/common/db_fan.c \
               tests/native/$test.c -o $test
           done
-      - name: Execute state-machine and fan-fixture tests
+      - name: Execute state-machine and fan-characterization tests
         run: |
           ./test_db_run
           ./test_db_fan

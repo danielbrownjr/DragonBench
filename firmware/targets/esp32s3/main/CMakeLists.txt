@@ -1,5 +1,5 @@
 idf_component_register(
-    SRCS "main.c" "fan_fixture.c"
+    SRCS "main.c" "fan_characterization.c"
     INCLUDE_DIRS "."
     REQUIRES
         common

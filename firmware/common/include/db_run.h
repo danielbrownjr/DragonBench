@@ -21,7 +21,7 @@ typedef enum {
     DB_NVS_WRITE,
     DB_OTA_PARTITION_WRITE,
     DB_CONTROLLED_REBOOT,
-    DB_FAN_PWM_HOLD, // bench fan-fixture stimulus; supported only in fixture builds
+    DB_FAN_PWM_HOLD, // bench stimulus; supported only in the fan-characterization profile
     DB_WORKLOAD_COUNT
 } db_workload_t;
 

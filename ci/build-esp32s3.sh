@@ -1,15 +1,19 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Usage: ci/build-esp32s3.sh [n8r8|tinys3d] [fanfixture|fanfixture-unconfigured]
+# Usage: ci/build-esp32s3.sh <board> [experiment] [--expect-refusal]
+#   board:       n8r8 | tinys3d
+#   experiment:  baseline (default) | fan-characterization
 #
-# Without a second argument this is a normal profile, which must contain no
-# fan-stimulus code. "fanfixture" layers the bench fan-fixture overlay plus the
-# untracked sdkconfig.fanfixture.local that states the wired GPIOs.
-# "fanfixture-unconfigured" proves that the overlay alone refuses to build.
-profile="${1:-n8r8}"
-fixture="${2:-}"
-case "$profile" in
+# An image is one board profile plus one experiment profile. Each experiment
+# layers sdkconfig.defaults.<experiment>; one that needs fixture wiring also
+# layers the untracked sdkconfig.<experiment>.local. --expect-refusal builds
+# the experiment WITHOUT its local overlay and passes only if the build stops
+# naming every missing wiring setting.
+board="${1:-n8r8}"
+experiment="${2:-baseline}"
+expect_refusal="${3:-}"
+case "$board" in
     n8r8)
         defaults="sdkconfig.defaults"
         expect=("CONFIG_SPIRAM_MODE_OCT 1" 'CONFIG_DB_TARGET_NAME "esp32s3-n8r8"' "CONFIG_DB_RF_SWITCH_GPIO -1")
@@ -19,45 +23,59 @@ case "$profile" in
         expect=("CONFIG_SPIRAM_MODE_QUAD 1" 'CONFIG_DB_TARGET_NAME "esp32s3-tinys3d"' "CONFIG_DB_RF_SWITCH_GPIO 38")
         ;;
     *)
-        echo "unknown board profile: $profile (expected n8r8 or tinys3d)" >&2
+        echo "unknown board profile: $board (expected n8r8 or tinys3d)" >&2
         exit 2
         ;;
 esac
-case "$fixture" in
-    "") ;;
-    fanfixture)
-        if [[ ! -f sdkconfig.fanfixture.local ]]; then
-            echo "fanfixture needs sdkconfig.fanfixture.local stating the wired fixture (docs/FAN_FIXTURE.md)" >&2
-            exit 2
-        fi
-        defaults="$defaults;sdkconfig.defaults.fanfixture;sdkconfig.fanfixture.local"
-        expect+=("CONFIG_DB_FAN_FIXTURE 1")
+
+# Non-baseline experiments, and what must be absent from every other image.
+all_experiments=(fan-characterization)
+declare -A experiment_symbol=([fan-characterization]="FAN_CHARACTERIZATION")
+declare -A experiment_code=([fan-characterization]="ledc_|pcnt_|fan_characterization_")
+declare -A experiment_entry=([fan-characterization]="fan_characterization_hold")
+declare -A experiment_wiring=([fan-characterization]="CONFIG_DB_FAN_PWM_GATE_GPIO CONFIG_DB_FAN_GATE_SINK_LEVEL CONFIG_DB_FAN_TACH_GPIO")
+
+case "$experiment" in
+    baseline)
+        expect+=("CONFIG_DB_EXPERIMENT_BASELINE 1")
         ;;
-    fanfixture-unconfigured)
-        defaults="$defaults;sdkconfig.defaults.fanfixture"
+    fan-characterization)
+        defaults="$defaults;sdkconfig.defaults.$experiment"
+        expect+=("CONFIG_DB_EXPERIMENT_${experiment_symbol[$experiment]} 1")
+        if [[ -z "$expect_refusal" ]]; then
+            if [[ ! -f "sdkconfig.$experiment.local" ]]; then
+                echo "$experiment needs sdkconfig.$experiment.local stating the wired fixture (docs/FAN_CHARACTERIZATION.md)" >&2
+                exit 2
+            fi
+            defaults="$defaults;sdkconfig.$experiment.local"
+        fi
         ;;
     *)
-        echo "unknown fixture option: $fixture (expected fanfixture or fanfixture-unconfigured)" >&2
+        echo "unknown experiment profile: $experiment (expected baseline or ${all_experiments[*]})" >&2
         exit 2
         ;;
 esac
+if [[ -n "$expect_refusal" && ( "$expect_refusal" != --expect-refusal || "$experiment" == baseline ) ]]; then
+    echo "--expect-refusal applies only to an experiment that needs fixture wiring" >&2
+    exit 2
+fi
 
 rm -f sdkconfig
 idf.py -D SDKCONFIG_DEFAULTS="$defaults" fullclean
 idf.py -D SDKCONFIG_DEFAULTS="$defaults" set-target esp32s3
 
-if [[ "$fixture" == fanfixture-unconfigured ]]; then
+if [[ -n "$expect_refusal" ]]; then
     if idf.py -D SDKCONFIG_DEFAULTS="$defaults" build > idf-build.log 2>&1; then
-        echo "unconfigured fan-fixture build succeeded; it must refuse to build" >&2
+        echo "unconfigured $experiment build succeeded; it must refuse to build" >&2
         exit 1
     fi
-    for setting in CONFIG_DB_FAN_PWM_GATE_GPIO CONFIG_DB_FAN_GATE_SINK_LEVEL CONFIG_DB_FAN_TACH_GPIO; do
-        if ! grep -q "#error \"Fan fixture: set $setting" idf-build.log; then
-            echo "unconfigured fan-fixture build did not name $setting" >&2
+    for setting in ${experiment_wiring[$experiment]}; do
+        if ! grep -q "#error \"$experiment: set $setting" idf-build.log; then
+            echo "unconfigured $experiment build did not name $setting" >&2
             exit 1
         fi
     done
-    echo "profile $profile unconfigured fan fixture refused as expected"
+    echo "$board/$experiment without wiring refused as expected"
     exit 0
 fi
 
@@ -70,7 +88,7 @@ fi
 
 for line in "${expect[@]}"; do
     if ! grep -qF "#define $line" build/config/sdkconfig.h; then
-        echo "profile $profile did not produce '#define $line'" >&2
+        echo "$board/$experiment did not produce '#define $line'" >&2
         exit 1
     fi
 done
@@ -82,19 +100,23 @@ if ! grep -q ' app_main$' <<< "$symbols"; then
     echo "could not read symbols from build/dragonbench.elf with $nm_tool" >&2
     exit 1
 fi
-stimulus_symbols="$(grep -E ' (ledc_|pcnt_|fan_fixture_)' <<< "$symbols" || true)"
-if [[ -z "$fixture" ]]; then
-    if grep -q "CONFIG_DB_FAN_FIXTURE" build/config/sdkconfig.h; then
-        echo "normal profile $profile enabled the fan fixture" >&2
+for other in "${all_experiments[@]}"; do
+    code="$(grep -E " (${experiment_code[$other]})" <<< "$symbols" || true)"
+    if [[ "$other" == "$experiment" ]]; then
+        if ! grep -q " ${experiment_entry[$other]}$" <<< "$code"; then
+            echo "$board/$experiment does not link ${experiment_entry[$other]}" >&2
+            exit 1
+        fi
+        continue
+    fi
+    if grep -q "CONFIG_DB_EXPERIMENT_${experiment_symbol[$other]}" build/config/sdkconfig.h; then
+        echo "$board/$experiment also selected $other" >&2
         exit 1
     fi
-    if [[ -n "$stimulus_symbols" ]]; then
-        echo "normal profile $profile links fan-stimulus code:" >&2
-        echo "$stimulus_symbols" >&2
+    if [[ -n "$code" ]]; then
+        echo "$board/$experiment links $other code:" >&2
+        echo "$code" >&2
         exit 1
     fi
-elif ! grep -q ' fan_fixture_hold$' <<< "$stimulus_symbols"; then
-    echo "fan-fixture profile $profile does not link fan_fixture_hold" >&2
-    exit 1
-fi
-echo "profile $profile${fixture:+ ($fixture)} verified"
+done
+echo "$board/$experiment verified"

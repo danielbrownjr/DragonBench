@@ -1,5 +1,5 @@
-// Fan-fixture common logic. Built twice: as a normal profile, and with
-// -DCONFIG_DB_FAN_FIXTURE=1 as the bench fixture profile.
+// Fan-characterization common logic. Built twice: as the baseline experiment
+// profile, and with -DCONFIG_DB_EXPERIMENT_FAN_CHARACTERIZATION=1.
 
 #include "db_fan.h"
 #include "db_run.h"
@@ -136,14 +136,14 @@ static void test_capability_gate(void) {
     char error[96];
     db_workload_t workload = DB_WORKLOAD_COUNT;
     assert(db_workload_parse("FAN_PWM_HOLD", &workload) && workload == DB_FAN_PWM_HOLD);
-    assert(db_workload_supported(DB_FAN_PWM_HOLD) == (DB_FAN_FIXTURE_BUILD == 1));
+    assert(db_workload_supported(DB_FAN_PWM_HOLD) == (DB_EXPERIMENT_FAN_CHARACTERIZATION == 1));
     db_run_request_t request = fan_request(25000, 500, 1000);
-#if DB_FAN_FIXTURE_BUILD
+#if DB_EXPERIMENT_FAN_CHARACTERIZATION
     assert(db_request_validate(&request, error, sizeof(error)));
 #else
     assert(!db_request_validate(&request, error, sizeof(error)));
-    assert(strcmp(error, "FAN_PWM_HOLD requires a fan-fixture build") == 0);
-    // Every other workload stays available in a normal profile.
+    assert(strcmp(error, "FAN_PWM_HOLD requires the fan-characterization experiment profile") == 0);
+    // Every other workload stays available in the baseline profile.
     for (int i = 0; i < DB_WORKLOAD_COUNT; ++i)
         assert(db_workload_supported((db_workload_t)i) == (i != DB_FAN_PWM_HOLD));
 #endif
@@ -159,7 +159,7 @@ static void test_capability_gate(void) {
 }
 
 static void test_parameter_bounds(void) {
-#if DB_FAN_FIXTURE_BUILD
+#if DB_EXPERIMENT_FAN_CHARACTERIZATION
     char error[96];
     db_run_request_t request = fan_request(DB_FAN_PWM_HZ_MIN, 0, 1);
     assert(db_request_validate(&request, error, sizeof(error)));
@@ -474,6 +474,6 @@ int main(void) {
     }
     test_release_on_every_path();
     test_phase_end_fits_event_slot();
-    printf("db_fan tests passed (%s profile)\n", DB_FAN_FIXTURE_BUILD ? "fan-fixture" : "normal");
+    printf("db_fan tests passed (%s experiment profile)\n", DB_EXPERIMENT_PROFILE_NAME);
     return 0;
 }

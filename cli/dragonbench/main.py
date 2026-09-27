@@ -86,7 +86,7 @@ def parser() -> argparse.ArgumentParser:
     traffic.add_argument("--duration", type=float, default=60.0)
     sweep = sub.add_parser(
         "fan-sweep",
-        help="run one FAN_PWM_HOLD per sink-duty step on a fan-fixture build",
+        help="run one FAN_PWM_HOLD per sink-duty step (fan-characterization profile)",
         description="Every step is a separate run; the fixture releases the fan PWM line "
                     "between steps. No parameter has a default fan meaning.",
     )
@@ -154,8 +154,9 @@ def fan_sweep(args: argparse.Namespace, client: Client, sleep=time.sleep, clock=
                         duty_tenths(args.step_pct, "step-pct"), args.order)
 
     device = client.request("GET", "/api/v1/device")
-    if (device.get("bench_stimulus") or {}).get("fan_pwm_fixture") is not True:
-        raise ClientError("device is not a fan-fixture build; FAN_PWM_HOLD is unavailable")
+    if device.get("experiment_profile") != "fan-characterization":
+        raise ClientError(f"device experiment profile is {device.get('experiment_profile')!r}, "
+                          "not 'fan-characterization'; FAN_PWM_HOLD is unavailable")
 
     report: dict[str, Any] = {
         "schema": "dragonbench.fan_sweep/1",

@@ -1,9 +1,10 @@
-"""Static contract for the bench-only fan-characterization fixture.
+"""Static contract for the fan-characterization experiment profile.
 
-The fixture is characterization equipment: an external open-drain PWM stimulus
-and tach capture, compiled only into an explicit fixture profile. These checks
-keep it from leaking into normal profiles, from growing product fan control,
-and from carrying guessed wiring or fan constants.
+The profile is characterization equipment: an external open-drain PWM stimulus
+and tach capture, compiled only when this experiment profile is selected. These
+checks keep it out of every other profile, keep it from growing product fan
+control, and keep guessed wiring or fan constants out of it. The profile
+mechanism itself is covered by test_experiment_profiles.py.
 """
 
 import re
@@ -14,7 +15,7 @@ from cli.dragonbench import main as cli
 
 ROOT = Path(__file__).parents[1]
 MAIN_C = ROOT / "firmware/targets/esp32s3/main/main.c"
-FIXTURE_C = ROOT / "firmware/targets/esp32s3/main/fan_fixture.c"
+FIXTURE_C = ROOT / "firmware/targets/esp32s3/main/fan_characterization.c"
 DB_FAN_H = ROOT / "firmware/common/include/db_fan.h"
 KCONFIG = ROOT / "firmware/targets/esp32s3/main/Kconfig.projbuild"
 
@@ -33,12 +34,7 @@ def _function_body(source, signature):
     return source[start:source.index("\n}\n", start)]
 
 
-class NormalProfilesTests(unittest.TestCase):
-    def test_fixture_is_off_by_default_and_in_every_normal_profile(self):
-        self.assertEqual(_kconfig_default("DB_FAN_FIXTURE"), "n")
-        for profile in ("sdkconfig.defaults", "sdkconfig.defaults.tinys3d"):
-            self.assertNotIn("DB_FAN", _read(profile), profile)
-
+class ProfileIsolationTests(unittest.TestCase):
     def test_fixture_wiring_has_no_defaults(self):
         self.assertEqual(_kconfig_default("DB_FAN_PWM_GATE_GPIO"), "-1")
         self.assertEqual(_kconfig_default("DB_FAN_GATE_SINK_LEVEL"), "-1")
@@ -47,38 +43,48 @@ class NormalProfilesTests(unittest.TestCase):
         self.assertEqual(_kconfig_default("DB_FAN_TACH_INTERNAL_PULLUP"), "n")
         self.assertEqual(_kconfig_default("DB_FAN_TACH_PPR_EVIDENCE"), '""')
 
-    def test_fixture_overlay_only_enables_and_assigns_no_pins(self):
-        overlay = _read("sdkconfig.defaults.fanfixture")
-        settings = [line for line in overlay.splitlines() if line and not line.startswith("#")]
-        self.assertEqual(settings, ["CONFIG_DB_FAN_FIXTURE=y"])
-        self.assertIn("sdkconfig.fanfixture.local", _read(".gitignore"))
+    def test_fixture_wiring_exists_only_inside_the_profile(self):
+        kconfig = _read(KCONFIG)
+        block = kconfig[kconfig.index("if DB_EXPERIMENT_FAN_CHARACTERIZATION\n"):]
+        block = block[:block.index("\nendif\n")]
+        self.assertEqual(kconfig.count("config DB_FAN_"), block.count("config DB_FAN_"))
+        for board in ("sdkconfig.defaults", "sdkconfig.defaults.tinys3d"):
+            self.assertNotIn("DB_FAN", _read(board), board)
 
-    def test_unconfigured_fixture_refuses_to_build(self):
+    def test_overlay_only_selects_the_profile_and_assigns_no_pins(self):
+        overlay = _read("sdkconfig.defaults.fan-characterization")
+        settings = [line for line in overlay.splitlines() if line and not line.startswith("#")]
+        self.assertEqual(settings, ["CONFIG_DB_EXPERIMENT_FAN_CHARACTERIZATION=y"])
+        self.assertIn("# CONFIG_DB_EXPERIMENT_BASELINE is not set", overlay)
+        self.assertIn("sdkconfig.fan-characterization.local", _read(".gitignore"))
+
+    def test_unconfigured_profile_refuses_to_build(self):
         source = _read(FIXTURE_C)
         for setting in ("CONFIG_DB_FAN_PWM_GATE_GPIO", "CONFIG_DB_FAN_GATE_SINK_LEVEL", "CONFIG_DB_FAN_TACH_GPIO"):
-            self.assertRegex(source, rf"#if {setting} < 0\n#error \"Fan fixture: set {setting}")
+            self.assertRegex(source, rf"#if {setting} < 0\n#error \"fan-characterization: set {setting}")
         self.assertIn("DB_FAN_PIN_RESERVED(CONFIG_DB_FAN_PWM_GATE_GPIO", source)
         self.assertIn("DB_FAN_PIN_RESERVED(CONFIG_DB_FAN_TACH_GPIO", source)
         self.assertIn("CONFIG_DB_RF_SWITCH_GPIO", source)
         self.assertIn("CONFIG_DB_FAN_TACH_PPR_EVIDENCE", source)
 
-    def test_fixture_code_is_compiled_out_of_normal_builds(self):
+    def test_profile_code_is_compiled_out_of_other_profiles(self):
         fixture = _read(FIXTURE_C)
-        self.assertLess(fixture.index("#if DB_FAN_FIXTURE_BUILD"), fixture.index("driver/ledc.h"))
+        self.assertLess(fixture.index("#if DB_EXPERIMENT_FAN_CHARACTERIZATION"), fixture.index("driver/ledc.h"))
         main = _read(MAIN_C)
-        for call in ("fan_fixture_boot()", "fan_fixture_hold(", "fan_fixture_describe("):
+        for call in ("fan_characterization_boot()", "fan_characterization_hold(", "fan_characterization_describe("):
             idx = main.index(call)
-            # Inside an open "#if DB_FAN_FIXTURE_BUILD" block.
-            self.assertGreater(main.rfind("#if DB_FAN_FIXTURE_BUILD", 0, idx), main.rfind("#endif", 0, idx), call)
-        self.assertIn("return DB_FAN_FIXTURE_BUILD;", _read("firmware/common/db_run.c"))
+            # Inside an open "#if DB_EXPERIMENT_FAN_CHARACTERIZATION" block.
+            self.assertGreater(main.rfind("#if DB_EXPERIMENT_FAN_CHARACTERIZATION", 0, idx),
+                               main.rfind("#endif", 0, idx), call)
+        self.assertIn("return DB_EXPERIMENT_FAN_CHARACTERIZATION;", _read("firmware/common/db_run.c"))
 
     def test_ci_proves_absence_and_refusal(self):
         script = _read("ci/build-esp32s3.sh")
-        self.assertIn("normal profile $profile links fan-stimulus code", script)
-        self.assertIn("(ledc_|pcnt_|fan_fixture_)", script)
+        self.assertIn('[fan-characterization]="ledc_|pcnt_|fan_characterization_"', script)
+        self.assertIn("links $other code", script)
         workflow = _read(".github/workflows/ci.yml")
-        self.assertIn("fanfixture-unconfigured", workflow)
-        self.assertIn("-DCONFIG_DB_FAN_FIXTURE=1", workflow)
+        self.assertIn("ci/build-esp32s3.sh tinys3d fan-characterization --expect-refusal", workflow)
+        self.assertIn("-DCONFIG_DB_EXPERIMENT_FAN_CHARACTERIZATION=1", workflow)
 
 
 class ProductBoundaryTests(unittest.TestCase):
@@ -87,10 +93,10 @@ class ProductBoundaryTests(unittest.TestCase):
         identity = _function_body(main, "static cJSON *identity_json")
         heater = identity.index('"heater_capability", false')
         fan = identity.index('"fan_control_capability", false')
-        guard = identity.index("#if DB_FAN_FIXTURE_BUILD")
+        guard = identity.index("#if DB_EXPERIMENT_FAN_CHARACTERIZATION")
         self.assertLess(heater, guard)
         self.assertLess(fan, guard)
-        self.assertIn('"fan_pwm_fixture", DB_FAN_FIXTURE_BUILD', identity)
+        self.assertIn('"fan_pwm_fixture", DB_EXPERIMENT_FAN_CHARACTERIZATION', identity)
 
     def test_no_heater_path_anywhere_in_firmware(self):
         # "heater" may appear only where the absent capability is reported.
@@ -120,7 +126,7 @@ class ProductBoundaryTests(unittest.TestCase):
         main = _read(MAIN_C)
         app_main = main[main.index("void app_main(void) {"):]
         first_statement = app_main.split("\n")[2].strip()
-        self.assertEqual(first_statement, "fan_fixture_boot(); // release the stimulus line before anything else")
+        self.assertEqual(first_statement, "fan_characterization_boot(); // release the stimulus line before anything else")
         common = _read("firmware/common/db_fan.c")
         hold = _function_body(common, "db_fan_hold_outcome_t db_fan_hold(")
         tail = hold[hold.index("\nrelease:"):]

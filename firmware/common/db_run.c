@@ -28,13 +28,13 @@ bool db_workload_parse(const char *name, db_workload_t *out) {
 }
 
 bool db_workload_supported(db_workload_t workload) {
-    if (workload == DB_FAN_PWM_HOLD) return DB_FAN_FIXTURE_BUILD;
+    if (workload == DB_FAN_PWM_HOLD) return DB_EXPERIMENT_FAN_CHARACTERIZATION;
     return workload >= DB_BOOT && workload < DB_WORKLOAD_COUNT;
 }
 
 bool db_request_validate(const db_run_request_t *request, char *error, size_t error_len) {
     if (request && request->workload == DB_FAN_PWM_HOLD && !db_workload_supported(DB_FAN_PWM_HOLD)) {
-        snprintf(error, error_len, "FAN_PWM_HOLD requires a fan-fixture build");
+        snprintf(error, error_len, "FAN_PWM_HOLD requires the fan-characterization experiment profile");
         return false;
     }
     if (!request || !db_workload_supported(request->workload)) {

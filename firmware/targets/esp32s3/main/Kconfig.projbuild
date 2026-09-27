@@ -31,19 +31,38 @@ config DB_RF_SWITCH_GPIO
         Driven low at boot to select the onboard antenna.
         TinyS3[D]: GPIO38 (high selects the external U.FL connector).
 
-config DB_FAN_FIXTURE
-    bool "Bench fan-characterization fixture (NOT product fan control)"
-    default n
+choice DB_EXPERIMENT_PROFILE
+    prompt "Experiment profile"
+    default DB_EXPERIMENT_BASELINE
+    help
+        A DragonBench image is exactly one board profile plus exactly one
+        experiment profile. An experiment profile is a narrow, reviewed
+        characterization setup, not a bundle of feature flags; each one
+        brings only the stimulus/acquisition code and fixture settings it
+        needs. Select one with its sdkconfig.defaults.<experiment> overlay.
+        See docs/EXPERIMENT_PROFILES.md.
+
+config DB_EXPERIMENT_BASELINE
+    bool "baseline: module workloads only, no fixture I/O"
+    help
+        The ESP32-S3 module characterization workloads. No stimulus or
+        acquisition hardware beyond the module itself.
+
+config DB_EXPERIMENT_FAN_CHARACTERIZATION
+    bool "fan-characterization: bench PWM stimulus + tach (NOT product fan control)"
     help
         Bench-only stimulus/capture fixture for characterizing a fan
         specimen: the FAN_PWM_HOLD workload drives the gate of an EXTERNAL
         open-drain transistor stage that sinks the fan PWM line, and PCNT
         counts tach edges. No closed loop, no thresholds, no heater, and no
-        product fan-control or safety policy. Normal profiles leave this off;
-        enable it only with sdkconfig.defaults.fanfixture plus a local
-        overlay that states the wired GPIOs. See docs/FAN_FIXTURE.md.
+        product fan-control or safety policy. Select it with
+        sdkconfig.defaults.fan-characterization plus a local overlay that
+        states the wired GPIOs. See docs/FAN_CHARACTERIZATION.md.
 
-if DB_FAN_FIXTURE
+endchoice
+
+if DB_EXPERIMENT_FAN_CHARACTERIZATION
+menu "Fan-characterization fixture wiring"
 config DB_FAN_PWM_GATE_GPIO
     int "Stimulus gate GPIO (-1: unset, build fails)"
     range -1 48
@@ -90,5 +109,6 @@ config DB_FAN_TACH_PPR_EVIDENCE
     help
         Required when DB_FAN_TACH_PPR is non-zero, for example the bench
         record that compared tach edges with an optical tachometer.
+endmenu
 endif
 endmenu

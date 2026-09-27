@@ -1,6 +1,6 @@
-#include "fan_fixture.h"
+#include "fan_characterization.h"
 
-#if DB_FAN_FIXTURE_BUILD
+#if DB_EXPERIMENT_FAN_CHARACTERIZATION
 
 #include "driver/gpio.h"
 #include "driver/ledc.h"
@@ -14,13 +14,13 @@
 // The fixture wiring is bench hardware DragonBench cannot know. Nothing has a
 // usable default: an unconfigured fixture build fails here instead of guessing.
 #if CONFIG_DB_FAN_PWM_GATE_GPIO < 0
-#error "Fan fixture: set CONFIG_DB_FAN_PWM_GATE_GPIO to the GPIO wired to the external open-drain stage gate (docs/FAN_FIXTURE.md)"
+#error "fan-characterization: set CONFIG_DB_FAN_PWM_GATE_GPIO to the GPIO wired to the external open-drain stage gate (docs/FAN_CHARACTERIZATION.md)"
 #endif
 #if CONFIG_DB_FAN_GATE_SINK_LEVEL < 0
-#error "Fan fixture: set CONFIG_DB_FAN_GATE_SINK_LEVEL to the gate level (0 or 1) at which the external stage sinks the fan PWM line (docs/FAN_FIXTURE.md)"
+#error "fan-characterization: set CONFIG_DB_FAN_GATE_SINK_LEVEL to the gate level (0 or 1) at which the external stage sinks the fan PWM line (docs/FAN_CHARACTERIZATION.md)"
 #endif
 #if CONFIG_DB_FAN_TACH_GPIO < 0
-#error "Fan fixture: set CONFIG_DB_FAN_TACH_GPIO to the GPIO wired to the conditioned tach signal (docs/FAN_FIXTURE.md)"
+#error "fan-characterization: set CONFIG_DB_FAN_TACH_GPIO to the GPIO wired to the conditioned tach signal (docs/FAN_CHARACTERIZATION.md)"
 #endif
 #if CONFIG_DB_FAN_PWM_GATE_GPIO >= 0 && CONFIG_DB_FAN_GATE_SINK_LEVEL >= 0 && CONFIG_DB_FAN_TACH_GPIO >= 0
 
@@ -30,20 +30,20 @@
 #define FAN_OCTAL_PSRAM 0
 #endif
 #if DB_FAN_PIN_RESERVED(CONFIG_DB_FAN_PWM_GATE_GPIO, FAN_OCTAL_PSRAM)
-#error "Fan fixture: CONFIG_DB_FAN_PWM_GATE_GPIO is a strapping, USB, flash/PSRAM, console, or nonexistent pin"
+#error "fan-characterization: CONFIG_DB_FAN_PWM_GATE_GPIO is a strapping, USB, flash/PSRAM, console, or nonexistent pin"
 #endif
 #if DB_FAN_PIN_RESERVED(CONFIG_DB_FAN_TACH_GPIO, FAN_OCTAL_PSRAM)
-#error "Fan fixture: CONFIG_DB_FAN_TACH_GPIO is a strapping, USB, flash/PSRAM, console, or nonexistent pin"
+#error "fan-characterization: CONFIG_DB_FAN_TACH_GPIO is a strapping, USB, flash/PSRAM, console, or nonexistent pin"
 #endif
 #if CONFIG_DB_FAN_PWM_GATE_GPIO == CONFIG_DB_FAN_TACH_GPIO
-#error "Fan fixture: gate and tach must be different GPIOs"
+#error "fan-characterization: gate and tach must be different GPIOs"
 #endif
 #if CONFIG_DB_FAN_PWM_GATE_GPIO == CONFIG_DB_RF_SWITCH_GPIO || CONFIG_DB_FAN_TACH_GPIO == CONFIG_DB_RF_SWITCH_GPIO
-#error "Fan fixture: GPIO collides with CONFIG_DB_RF_SWITCH_GPIO"
+#error "fan-characterization: GPIO collides with CONFIG_DB_RF_SWITCH_GPIO"
 #endif
 // RPM is derived only from a PPR that names the evidence that established it.
 _Static_assert(CONFIG_DB_FAN_TACH_PPR == 0 || sizeof(CONFIG_DB_FAN_TACH_PPR_EVIDENCE) > 1,
-               "Fan fixture: CONFIG_DB_FAN_TACH_PPR needs CONFIG_DB_FAN_TACH_PPR_EVIDENCE");
+               "fan-characterization: CONFIG_DB_FAN_TACH_PPR needs CONFIG_DB_FAN_TACH_PPR_EVIDENCE");
 
 #if defined(CONFIG_DB_FAN_TACH_INTERNAL_PULLUP)
 #define TACH_INTERNAL_PULLUP 1
@@ -51,7 +51,7 @@ _Static_assert(CONFIG_DB_FAN_TACH_PPR == 0 || sizeof(CONFIG_DB_FAN_TACH_PPR_EVID
 #define TACH_INTERNAL_PULLUP 0
 #endif
 
-#define TAG "fan_fixture"
+#define TAG "fan_characterization"
 #define GATE_GPIO ((gpio_num_t)CONFIG_DB_FAN_PWM_GATE_GPIO)
 #define TACH_GPIO ((gpio_num_t)CONFIG_DB_FAN_TACH_GPIO)
 #define GATE_SINK_LEVEL CONFIG_DB_FAN_GATE_SINK_LEVEL
@@ -217,16 +217,16 @@ static bool tach_init(void) {
 
 static void shutdown_release(void) { db_fan_release(&fixture); }
 
-void fan_fixture_boot(void) {
+void fan_characterization_boot(void) {
     if (!db_fan_release(&fixture)) ESP_LOGE(TAG, "gate release could not be verified at boot");
     tach_ready = tach_init();
     if (!tach_ready) ESP_LOGE(TAG, "tach capture unavailable on GPIO%d", CONFIG_DB_FAN_TACH_GPIO);
     if (esp_register_shutdown_handler(shutdown_release) != ESP_OK) ESP_LOGW(TAG, "no shutdown release handler");
-    ESP_LOGW(TAG, "BENCH FAN FIXTURE BUILD: gate GPIO%d (sink level %d), tach GPIO%d, line %s",
+    ESP_LOGW(TAG, "FAN-CHARACTERIZATION EXPERIMENT PROFILE (bench stimulus, not product fan control): gate GPIO%d (sink level %d), tach GPIO%d, line %s",
              CONFIG_DB_FAN_PWM_GATE_GPIO, GATE_SINK_LEVEL, CONFIG_DB_FAN_TACH_GPIO, line_state_name(line_state));
 }
 
-db_fan_hold_outcome_t fan_fixture_hold(const db_run_request_t *request, bool (*should_abort)(void),
+db_fan_hold_outcome_t fan_characterization_hold(const db_run_request_t *request, bool (*should_abort)(void),
                                        db_fan_hold_result_t *result) {
     abort_requested = should_abort;
     const db_fan_hold_outcome_t outcome =
@@ -235,9 +235,9 @@ db_fan_hold_outcome_t fan_fixture_hold(const db_run_request_t *request, bool (*s
     return outcome;
 }
 
-uint32_t fan_fixture_ppr(void) { return CONFIG_DB_FAN_TACH_PPR; }
+uint32_t fan_characterization_ppr(void) { return CONFIG_DB_FAN_TACH_PPR; }
 
-void fan_fixture_describe(cJSON *parent) {
+void fan_characterization_describe(cJSON *parent) {
     cJSON *o = cJSON_AddObjectToObject(parent, "fan_fixture");
     cJSON_AddStringToObject(o, "stimulus", "pwm_sink_via_external_open_drain_stage");
     cJSON_AddStringToObject(o, "fan_response", "uncharacterized");

@@ -17,3 +17,6 @@ CONFIG_MDNS_MAX_INTERFACES=2
 CONFIG_MDNS_PREDEF_NETIF_AP=y
 CONFIG_MDNS_PREDEF_NETIF_STA=y
 # CONFIG_MDNS_PREDEF_NETIF_ETH is not set
+# Experiment profile: baseline unless an sdkconfig.defaults.<experiment>
+# overlay selects exactly one other (docs/EXPERIMENT_PROFILES.md).
+CONFIG_DB_EXPERIMENT_BASELINE=y
