@@ -30,4 +30,65 @@ config DB_RF_SWITCH_GPIO
     help
         Driven low at boot to select the onboard antenna.
         TinyS3[D]: GPIO38 (high selects the external U.FL connector).
+
+config DB_FAN_FIXTURE
+    bool "Bench fan-characterization fixture (NOT product fan control)"
+    default n
+    help
+        Bench-only stimulus/capture fixture for characterizing a fan
+        specimen: the FAN_PWM_HOLD workload drives the gate of an EXTERNAL
+        open-drain transistor stage that sinks the fan PWM line, and PCNT
+        counts tach edges. No closed loop, no thresholds, no heater, and no
+        product fan-control or safety policy. Normal profiles leave this off;
+        enable it only with sdkconfig.defaults.fanfixture plus a local
+        overlay that states the wired GPIOs. See docs/FAN_FIXTURE.md.
+
+if DB_FAN_FIXTURE
+config DB_FAN_PWM_GATE_GPIO
+    int "Stimulus gate GPIO (-1: unset, build fails)"
+    range -1 48
+    default -1
+    help
+        GPIO wired to the gate/base of the external open-drain stage. It
+        never connects to the fan PWM lead directly. No default: the fixture
+        wiring decides it.
+config DB_FAN_GATE_SINK_LEVEL
+    int "Gate level at which the stage sinks the fan PWM line (-1: unset)"
+    range -1 1
+    default -1
+    help
+        1 for a non-inverting stage (for example an N-channel MOSFET gate or
+        NPN base: high sinks), 0 for an inverting one. The opposite level is
+        the release level used at boot, run end, abort, and every error.
+config DB_FAN_TACH_GPIO
+    int "Conditioned tach input GPIO (-1: unset, build fails)"
+    range -1 48
+    default -1
+    help
+        GPIO receiving the tach signal after the fixture's pull-up/level
+        conditioning. It must never see more than 3.3 V.
+config DB_FAN_TACH_INTERNAL_PULLUP
+    bool "Enable the ESP32-S3 internal pull-up on the tach input"
+    default n
+    help
+        Off by default: the fixture is expected to provide an external
+        pull-up to 3.3 V sized for the tach output.
+config DB_FAN_TACH_GLITCH_FILTER_NS
+    int "PCNT glitch filter on the tach input, ns (0: off)"
+    range 0 12700
+    default 0
+config DB_FAN_TACH_PPR
+    int "Tach pulses per revolution (0: unknown, RPM not reported)"
+    range 0 16
+    default 0
+    help
+        Leave 0 until PPR is established for the specimen by independent
+        evidence. With 0, events report edge frequency and "ppr": null only.
+config DB_FAN_TACH_PPR_EVIDENCE
+    string "Evidence reference establishing the configured PPR"
+    default ""
+    help
+        Required when DB_FAN_TACH_PPR is non-zero, for example the bench
+        record that compared tach edges with an optical tachometer.
+endif
 endmenu

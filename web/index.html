@@ -83,7 +83,7 @@ footer{padding:16px 0 24px;color:var(--muted-fg);text-align:center;font-size:.76
 
 <section class="banner" data-role="actuator-boundary" aria-labelledby="actuator-boundary-heading">
   <h2 id="actuator-boundary-heading">DragonBench characterization image</h2>
-  <p><strong>No product actuator support.</strong> This image cannot drive a heater or fan. All voltage, current, and rail evidence remains owned by external bench equipment.</p>
+  <p><strong>No product actuator support.</strong> This image has no heater or product fan-control path. A bench fan-fixture build can only drive an external open-drain PWM stimulus stage for characterization, with no closed loop or thresholds. All voltage, current, and rail evidence remains owned by external bench equipment.</p>
 </section>
 
 <section class="capabilities" aria-label="Actuator capability boundary">
@@ -94,6 +94,10 @@ footer{padding:16px 0 24px;color:var(--muted-fg);text-align:center;font-size:.76
   <div class="capability">
     <span>Fan-control capability</span>
     <strong data-role="capability-fan" data-status="unsupported">ABSENT</strong>
+  </div>
+  <div class="capability">
+    <span>Bench fan-PWM stimulus</span>
+    <strong data-role="capability-fan-stimulus" data-status="unsupported">ABSENT</strong>
   </div>
 </section>
 
@@ -169,6 +173,8 @@ footer{padding:16px 0 24px;color:var(--muted-fg);text-align:center;font-size:.76
     var heater=role('capability-heater'),fan=role('capability-fan');
     if(typeof data.heater_capability==='boolean'){heater.textContent=data.heater_capability?'PRESENT':'ABSENT';heater.dataset.status=data.heater_capability?'error':'unsupported'}
     if(typeof data.fan_control_capability==='boolean'){fan.textContent=data.fan_control_capability?'PRESENT':'ABSENT';fan.dataset.status=data.fan_control_capability?'error':'unsupported'}
+    var stimulus=role('capability-fan-stimulus'),bench=data.bench_stimulus;
+    if(bench&&typeof bench.fan_pwm_fixture==='boolean'){stimulus.textContent=bench.fan_pwm_fixture?'BENCH FIXTURE':'ABSENT';stimulus.dataset.status=bench.fan_pwm_fixture?'running':'unsupported'}
     role('identity').textContent=(data.target||'target —')+' · firmware '+(data.firmware_version||'—');
   }
   function renderSensors(data){

@@ -7,8 +7,10 @@
 #include <unistd.h>
 
 #include "cJSON.h"
+#include "db_fan.h"
 #include "db_network.h"
 #include "db_run.h"
+#include "fan_fixture.h"
 #include "driver/gpio.h"
 #include "driver/temperature_sensor.h"
 #include "esp_attr.h"
@@ -261,6 +263,20 @@ static bool run_network(const db_run_request_t *request, uint64_t *tx, uint64_t 
     return ok && !should_abort();
 }
 
+static void format_parameters(const db_run_request_t *request, char *out, size_t out_len) {
+    if (request->workload == DB_FAN_PWM_HOLD) {
+        db_fan_pwm_plan_t plan = {0};
+        const bool planned = db_fan_pwm_plan(request->pwm_hz, request->sink_duty_tenths_pct, &plan);
+        db_fan_format_parameters(out, out_len, request->pwm_hz, request->sink_duty_tenths_pct,
+                                 request->duration_ms, planned ? &plan : NULL);
+        return;
+    }
+    snprintf(out, out_len,
+             "{\"duration_ms\":%" PRIu32 ",\"rate_bps\":%" PRIu32
+             ",\"host\":\"%s\",\"port\":%u}",
+             request->duration_ms, request->rate_bps, request->host, request->port);
+}
+
 static void workload_task(void *unused) {
     (void)unused;
     db_run_t run;
@@ -269,13 +285,12 @@ static void workload_task(void *unused) {
     xSemaphoreGive(state_lock);
     const char *phase = db_workload_name(run.request.workload);
     char parameters[384];
-    snprintf(parameters, sizeof(parameters),
-             "{\"duration_ms\":%" PRIu32 ",\"rate_bps\":%" PRIu32
-             ",\"host\":\"%s\",\"port\":%u}",
-             run.request.duration_ms, run.request.rate_bps, run.request.host, run.request.port);
+    format_parameters(&run.request, parameters, sizeof(parameters));
     emit_event("phase_start", phase, run.run_id, NULL, parameters, NULL);
     bool ok = true;
+    bool fixture_fault = false;
     uint64_t a = 0, b = 0;
+    char metrics[DB_FAN_METRICS_JSON_LEN] = "";
     switch (run.request.workload) {
         case DB_BOOT:
         case DB_IDLE:
@@ -302,12 +317,24 @@ static void workload_task(void *unused) {
         }
         case DB_CONTROLLED_REBOOT:
             ok = wait_abortable(run.request.duration_ms); break;
+#if DB_FAN_FIXTURE_BUILD
+        case DB_FAN_PWM_HOLD: {
+            db_fan_hold_result_t hold;
+            ok = fan_fixture_hold(&run.request, should_abort, &hold) == DB_FAN_HOLD_PASS;
+            // A fixture error (including a failed release) is a fault even during abort.
+            fixture_fault = hold.error != NULL;
+            if (!db_fan_format_metrics(metrics, sizeof(metrics), &hold, fan_fixture_ppr()))
+                snprintf(metrics, sizeof(metrics), "{\"metrics_overflow\":true,\"released\":%s}",
+                         hold.released ? "true" : "false");
+            break;
+        }
+#endif
         default: ok = false; break;
     }
     const char *result = should_abort() ? "aborted" : (ok ? "pass" : "fail");
-    char metrics[128];
-    snprintf(metrics, sizeof(metrics), "{\"operations_or_bytes\":%" PRIu64 ",\"bytes_rx\":%" PRIu64 "}", a, b);
-    if (!ok && !should_abort()) emit_event("fault", phase, run.run_id, "fail", parameters, metrics);
+    if (!metrics[0])
+        snprintf(metrics, sizeof(metrics), "{\"operations_or_bytes\":%" PRIu64 ",\"bytes_rx\":%" PRIu64 "}", a, b);
+    if ((!ok && !should_abort()) || fixture_fault) emit_event("fault", phase, run.run_id, "fail", parameters, metrics);
     emit_event("phase_end", phase, run.run_id, result, parameters, metrics);
     xSemaphoreTake(state_lock, portMAX_DELAY);
     db_run_finish(&current_run, result, uptime_ms());
@@ -339,8 +366,14 @@ static cJSON *identity_json(void) {
     cJSON_AddStringToObject(o, "firmware_version", CONFIG_DB_FIRMWARE_VERSION);
     cJSON_AddStringToObject(o, "device_id", device_id);
     cJSON_AddStringToObject(o, "image_class", "characterization");
+    // Product actuator capabilities are absent in every build, fixture included.
     cJSON_AddBoolToObject(o, "heater_capability", false);
     cJSON_AddBoolToObject(o, "fan_control_capability", false);
+    cJSON *bench = cJSON_AddObjectToObject(o, "bench_stimulus");
+    cJSON_AddBoolToObject(bench, "fan_pwm_fixture", DB_FAN_FIXTURE_BUILD);
+#if DB_FAN_FIXTURE_BUILD
+    fan_fixture_describe(bench);
+#endif
     cJSON_AddStringToObject(o, "measurement_authority", "external_bench_equipment");
     return o;
 }
@@ -412,6 +445,10 @@ static esp_err_t workloads_get(httpd_req_t *req) {
         cJSON *o = cJSON_CreateObject();
         cJSON_AddStringToObject(o, "id", db_workload_name((db_workload_t)i));
         cJSON_AddStringToObject(o, "status", db_workload_supported((db_workload_t)i) ? "available" : "unsupported");
+        if (i == DB_FAN_PWM_HOLD) {
+            cJSON_AddStringToObject(o, "class", "bench_stimulus");
+            if (!db_workload_supported(DB_FAN_PWM_HOLD)) cJSON_AddStringToObject(o, "reason", "requires fan-fixture build");
+        }
         cJSON_AddItemToArray(a, o);
     }
     static const char *const unsupported[] = {
@@ -446,6 +483,8 @@ static esp_err_t runs_post(httpd_req_t *req) {
     cJSON *duration = body ? cJSON_GetObjectItemCaseSensitive(body, "duration_ms") : NULL;
     db_run_request_t request = {.duration_ms = 30000};
     bool parsed = cJSON_IsString(w) && db_workload_parse(w->valuestring, &request.workload);
+    // A bench stimulus never runs for an implied duration.
+    if (request.workload == DB_FAN_PWM_HOLD && !cJSON_IsNumber(duration)) request.duration_ms = 0;
     if (cJSON_IsNumber(duration)) {
         if (duration->valuedouble < 1 || duration->valuedouble > 3600000 ||
             duration->valuedouble != (double)(uint32_t)duration->valuedouble) parsed = false;
@@ -465,8 +504,23 @@ static esp_err_t runs_post(httpd_req_t *req) {
             rate->valuedouble != (double)(uint32_t)rate->valuedouble) parsed = false;
         else request.rate_bps = (uint32_t)rate->valuedouble;
     }
+    cJSON *pwm_hz = body ? cJSON_GetObjectItemCaseSensitive(body, "pwm_hz") : NULL;
+    cJSON *sink_duty = body ? cJSON_GetObjectItemCaseSensitive(body, "sink_duty_pct") : NULL;
+    const char *field_error = NULL;
+    if (pwm_hz) {
+        request.pwm_hz_set = true;
+        if (!cJSON_IsNumber(pwm_hz) || pwm_hz->valuedouble < 0 || pwm_hz->valuedouble > UINT32_MAX ||
+            pwm_hz->valuedouble != (double)(uint32_t)pwm_hz->valuedouble) field_error = "pwm_hz must be an integer";
+        else request.pwm_hz = (uint32_t)pwm_hz->valuedouble;
+    }
+    if (sink_duty) {
+        request.sink_duty_set = true;
+        if (!cJSON_IsNumber(sink_duty) || !db_fan_sink_duty_from_pct(sink_duty->valuedouble, &request.sink_duty_tenths_pct))
+            field_error = "sink_duty_pct must be 0..100 in 0.1 steps";
+    }
     char validation[96] = "invalid workload";
-    bool valid = parsed && db_request_validate(&request, validation, sizeof(validation));
+    if (field_error) snprintf(validation, sizeof(validation), "%s", field_error);
+    bool valid = parsed && !field_error && db_request_validate(&request, validation, sizeof(validation));
     cJSON_Delete(body);
     if (!valid) { cJSON *o = cJSON_CreateObject(); cJSON_AddStringToObject(o, "error", validation); return send_json(req, o, 400); }
     xSemaphoreTake(state_lock, portMAX_DELAY);
@@ -648,7 +702,7 @@ static const char landing[] =
 "</header>"
 "<section class=\"banner\" data-role=\"actuator-boundary\" aria-labelledby=\"actuator-boundary-heading\">"
 "  <h2 id=\"actuator-boundary-heading\">DragonBench characterization image</h2>"
-"  <p><strong>No product actuator support.</strong> This image cannot drive a heater or fan. All voltage, current, and rail evidence remains owned by external bench equipment.</p>"
+"  <p><strong>No product actuator support.</strong> This image has no heater or product fan-control path. A bench fan-fixture build can only drive an external open-drain PWM stimulus stage for characterization, with no closed loop or thresholds. All voltage, current, and rail evidence remains owned by external bench equipment.</p>"
 "</section>"
 "<section class=\"capabilities\" aria-label=\"Actuator capability boundary\">"
 "  <div class=\"capability\">"
@@ -658,6 +712,10 @@ static const char landing[] =
 "  <div class=\"capability\">"
 "    <span>Fan-control capability</span>"
 "    <strong data-role=\"capability-fan\" data-status=\"unsupported\">ABSENT</strong>"
+"  </div>"
+"  <div class=\"capability\">"
+"    <span>Bench fan-PWM stimulus</span>"
+"    <strong data-role=\"capability-fan-stimulus\" data-status=\"unsupported\">ABSENT</strong>"
 "  </div>"
 "</section>"
 "<noscript><p style=\"width:min(1100px,100%);margin:0 auto 16px\">JavaScript is required to populate live values. The DragonBench API remains directly reachable at /api/v1/status, /api/v1/sensors, and /api/v1/workloads.</p></noscript>"
@@ -727,6 +785,8 @@ static const char landing[] =
 "    var heater=role('capability-heater'),fan=role('capability-fan');"
 "    if(typeof data.heater_capability==='boolean'){heater.textContent=data.heater_capability?'PRESENT':'ABSENT';heater.dataset.status=data.heater_capability?'error':'unsupported'}"
 "    if(typeof data.fan_control_capability==='boolean'){fan.textContent=data.fan_control_capability?'PRESENT':'ABSENT';fan.dataset.status=data.fan_control_capability?'error':'unsupported'}"
+"    var stimulus=role('capability-fan-stimulus'),bench=data.bench_stimulus;"
+"    if(bench&&typeof bench.fan_pwm_fixture==='boolean'){stimulus.textContent=bench.fan_pwm_fixture?'BENCH FIXTURE':'ABSENT';stimulus.dataset.status=bench.fan_pwm_fixture?'running':'unsupported'}"
 "    role('identity').textContent=(data.target||'target —')+' · firmware '+(data.firmware_version||'—');"
 "  }"
 "  function renderSensors(data){"
@@ -1154,6 +1214,9 @@ static void antenna_init(void) {
 }
 
 void app_main(void) {
+#if DB_FAN_FIXTURE_BUILD
+    fan_fixture_boot(); // release the stimulus line before anything else
+#endif
     ESP_ERROR_CHECK(nvs_flash_init());
     state_lock = xSemaphoreCreateMutex();
     boot_nonce = esp_random();

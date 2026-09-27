@@ -9,3 +9,6 @@ __pycache__/
 .venv/
 .pytest_cache/
 artifacts/
+sdkconfig.fanfixture.local
+test_db_fan
+test_db_fan.exe
