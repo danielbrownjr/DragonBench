@@ -21,6 +21,7 @@ typedef enum {
     DB_NVS_WRITE,
     DB_OTA_PARTITION_WRITE,
     DB_CONTROLLED_REBOOT,
+    DB_FAN_PWM_HOLD, // bench fan-fixture stimulus; supported only in fixture builds
     DB_WORKLOAD_COUNT
 } db_workload_t;
 
@@ -32,6 +33,11 @@ typedef struct {
     uint32_t rate_bps;
     uint16_t port;
     char host[DB_HOST_LEN];
+    // FAN_PWM_HOLD only. Zero-initialized requests carry no fan parameters.
+    bool pwm_hz_set;
+    bool sink_duty_set;
+    uint32_t pwm_hz;
+    uint16_t sink_duty_tenths_pct;
 } db_run_request_t;
 
 typedef struct {
