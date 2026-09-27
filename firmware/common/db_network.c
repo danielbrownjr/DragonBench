@@ -8,11 +8,12 @@ bool db_network_identity(const uint8_t mac[6], char *suffix, size_t suffix_size,
     if (!mac || !suffix || !device_id || !ssid ||
         suffix_size < DB_DEVICE_SUFFIX_LEN || device_id_size < DB_DEVICE_ID_LEN ||
         ssid_size < DB_AP_SSID_LEN) return false;
-    int a = snprintf(suffix, suffix_size, "%02X%02X%02X", mac[3], mac[4], mac[5]);
-    int b = snprintf(device_id, device_id_size, "dragonbench-%s", suffix);
-    int c = snprintf(ssid, ssid_size, "DragonBench-%s", suffix);
-    return a == DB_DEVICE_SUFFIX_LEN - 1 && b > 0 && (size_t)b < device_id_size &&
-           c > 0 && (size_t)c < ssid_size;
+    int suffix_len = snprintf(suffix, suffix_size, "%02X%02X%02X", mac[3], mac[4], mac[5]);
+    int device_id_len = snprintf(device_id, device_id_size, "dragonbench-%s", suffix);
+    int ssid_len = snprintf(ssid, ssid_size, "DragonBench-%s", suffix);
+    return suffix_len == DB_DEVICE_SUFFIX_LEN - 1 &&
+           device_id_len > 0 && (size_t)device_id_len < device_id_size &&
+           ssid_len > 0 && (size_t)ssid_len < ssid_size;
 }
 
 bool db_sta_is_configured(const char *ssid) { return ssid && ssid[0] != '\0'; }
@@ -33,6 +34,16 @@ uint32_t db_sta_retry_delay_ms(unsigned attempt) {
     uint32_t delay = DB_STA_BACKOFF_MIN_MS;
     while (step-- > 0 && delay < DB_STA_BACKOFF_MAX_MS) delay *= 2U;
     return delay < DB_STA_BACKOFF_MAX_MS ? delay : DB_STA_BACKOFF_MAX_MS;
+}
+
+uint32_t db_request_id_next(uint32_t current) {
+    uint32_t next = current + 1U;
+    return next == 0U ? 1U : next;
+}
+
+bool db_request_id_is_newer(uint32_t candidate, uint32_t reference) {
+    uint32_t distance = candidate - reference;
+    return distance != 0U && distance < UINT32_C(0x80000000);
 }
 
 const char *db_ap_state_name(db_ap_state_t state) {

@@ -30,5 +30,14 @@ bool db_mdns_hostname(const char *configured, const char *device_id, char *out, 
 
 /* 0 for the first DB_STA_FAST_RETRIES attempts, then doubling up to the max. */
 uint32_t db_sta_retry_delay_ms(unsigned attempt);
+
+/*
+ * Request IDs use 32-bit serial-number arithmetic. Zero is reserved for
+ * "no completed request"; wrap therefore advances UINT32_MAX -> 1.
+ * Ordering is well-defined while compared IDs are less than 2^31 apart.
+ */
+uint32_t db_request_id_next(uint32_t current);
+bool db_request_id_is_newer(uint32_t candidate, uint32_t reference);
+
 const char *db_ap_state_name(db_ap_state_t state);
 const char *db_sta_state_name(db_sta_state_t state);

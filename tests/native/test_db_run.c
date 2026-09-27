@@ -27,6 +27,14 @@ int main(void) {
     for (unsigned i = 0; i < sizeof(expected_delays) / sizeof(expected_delays[0]); ++i)
         assert(db_sta_retry_delay_ms(i) == expected_delays[i]);
     assert(db_sta_retry_delay_ms(UINT_MAX) == DB_STA_BACKOFF_MAX_MS);
+    assert(db_request_id_next(0U) == 1U);
+    assert(db_request_id_next(41U) == 42U);
+    assert(db_request_id_next(UINT32_MAX) == 1U);
+    assert(!db_request_id_is_newer(7U, 7U));
+    assert(db_request_id_is_newer(8U, 7U));
+    assert(db_request_id_is_newer(1U, UINT32_MAX));
+    assert(!db_request_id_is_newer(UINT32_MAX, 1U));
+    assert(!db_request_id_is_newer(0x80000001U, 1U));
     char hostname[32];
     assert(db_mdns_hostname("", "dragonbench-E2A12C", hostname, sizeof(hostname)));
     assert(strcmp(hostname, "dragonbench-e2a12c") == 0);

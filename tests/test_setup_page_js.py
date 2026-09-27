@@ -71,6 +71,11 @@ const oldConnection = net(0, 'none', 'connected', { sta_ip: '192.168.8.140' });
     oldConnection,
     net(2, 'applied', 'connected', { sta_ip: '192.168.8.140' }),
   ], post);
+  out.wraparound = await scenario([
+    net(4294967295, 'applied', 'connected', { sta_ip: '192.168.8.140' }),
+    net(4294967295, 'applied', 'connected', { sta_ip: '192.168.8.140' }),
+    net(1, 'applied', 'connected', { sta_ip: '192.168.8.141' }),
+  ], { state: 'connecting', request_id: 1, ssid: 'turvy' });
   console.log(JSON.stringify(out));
 })();
 """
@@ -106,6 +111,11 @@ class SetupPageBehaviourTests(unittest.TestCase):
 
     def test_newer_submission_supersedes(self):
         self.assertIn("newer submission", self.messages["superseded"][-1])
+
+    def test_request_id_wrap_does_not_misclassify_previous_result_as_newer(self):
+        messages = self.messages["wraparound"]
+        self.assertFalse(any("newer submission" in message for message in messages), messages)
+        self.assertEqual(messages[-1], "Connected to turvy at 192.168.8.141.")
 
 
 if __name__ == "__main__":

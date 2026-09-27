@@ -829,13 +829,20 @@ static const char setup_page[] =
 "    })"
 "    .catch(function(){pending=null;message.textContent='No response to the request. If the access point dropped, reconnect to it and check the status below.'});"
 "  });"
+"  function requestIdNewer(candidate,reference){"
+"    var distance=(candidate-reference)>>>0;"
+"    return distance!==0&&distance<0x80000000;"
+"  }"
 "  function render(n){"
 "    var connected=n.sta_state==='connected';"
 "    show('sta-state',n.sta_state);show('sta-current',n.sta_ssid);show('sta-ip',connected?n.sta_ip:undefined);"
 "    role('sta-reason').textContent=connected?'—':reason(n.sta_last_disconnect_reason);"
-"    if(!pending||!(n.sta_config_request_id>=pending.id))return;"
-"    if(n.sta_config_request_id>pending.id){message.textContent='A newer submission replaced this one.';pending=null}"
-"    else if(n.sta_config_result==='failed'){message.textContent='Could not apply these settings; the previous network is still in use.';pending=null}"
+"    if(!pending)return;"
+"    if(n.sta_config_request_id!==pending.id){"
+"      if(requestIdNewer(n.sta_config_request_id,pending.id)){message.textContent='A newer submission replaced this one.';pending=null}"
+"      return;"
+"    }"
+"    if(n.sta_config_result==='failed'){message.textContent='Could not apply these settings; the previous network is still in use.';pending=null}"
 "    else if(connected&&n.sta_ssid===pending.ssid){message.textContent='Connected to '+pending.ssid+' at '+n.sta_ip+'.';pending=null}"
 "    else if(n.sta_last_disconnect_reason&&n.sta_last_disconnect_reason!==8)"
 "      message.textContent='Not connected to '+pending.ssid+' yet: '+reason(n.sta_last_disconnect_reason)+'. Retrying.';"
@@ -973,7 +980,8 @@ static esp_err_t network_sta_post(httpd_req_t *req) {
         return send_json(req, o, 400);
     }
     static uint32_t request_counter;
-    sta_credentials_t creds = {.request_id = ++request_counter};
+    request_counter = db_request_id_next(request_counter);
+    sta_credentials_t creds = {.request_id = request_counter};
     snprintf(creds.ssid, sizeof(creds.ssid), "%s", ssid->valuestring);
     snprintf(creds.password, sizeof(creds.password), "%s", password_value);
     cJSON_Delete(body);
