@@ -109,11 +109,12 @@ class ProductBoundaryTests(unittest.TestCase):
                        "ledc_set_freq", "ledc_set_fade"):
             for match in re.finditer(rf"\b{helper}\(", source):
                 enclosing = source.rindex("\nstatic ", 0, match.start())
-                self.assertTrue(source.startswith("\nstatic bool apply_stimulus", enclosing), helper)
+                self.assertTrue(source.startswith("\nstatic bool start_pwm", enclosing), helper)
         common = _read("firmware/common/db_fan.c")
         hold = _function_body(common, "db_fan_hold_outcome_t db_fan_hold(")
-        self.assertEqual(hold.count("ops->apply("), 1)
-        self.assertLess(hold.index("ops->apply("), hold.index("ops->tach_read("))
+        self.assertEqual(hold.count("actuate("), 1)
+        self.assertLess(hold.index("actuate("), hold.index("ops->tach_read("))
+        self.assertNotIn("tach", _function_body(common, "static bool actuate("))
 
     def test_release_is_first_in_boot_and_on_every_hold_exit(self):
         main = _read(MAIN_C)
@@ -123,14 +124,33 @@ class ProductBoundaryTests(unittest.TestCase):
         common = _read("firmware/common/db_fan.c")
         hold = _function_body(common, "db_fan_hold_outcome_t db_fan_hold(")
         tail = hold[hold.index("\nrelease:"):]
-        self.assertIn("ops->release(ops->ctx)", tail)
-        self.assertNotIn("return", hold[hold.index("ops->apply("):hold.index("\nrelease:")])
+        self.assertIn("db_fan_release(fixture)", tail)
+        self.assertNotIn("return", hold[hold.index("actuate("):hold.index("\nrelease:")])
+        self.assertIn("return fixture->gate_sink_level ? 0 : 1;", common)
         fixture = _read(FIXTURE_C)
         self.assertIn("esp_register_shutdown_handler(shutdown_release)", fixture)
-        self.assertIn("#define GATE_RELEASE_LEVEL (GATE_SINK_LEVEL ? 0 : 1)", fixture)
-        release = _function_body(fixture, "static bool release_line")
-        self.assertLess(release.index("gpio_set_level(GATE_GPIO, GATE_RELEASE_LEVEL)"), release.index("gpio_config("))
-        self.assertIn("GPIO_PULLUP_DISABLE", release)
+        drive = _function_body(fixture, "static bool drive_static")
+        self.assertLess(drive.index("gpio_set_level(GATE_GPIO, gate_level)"), drive.index("gpio_config("))
+        self.assertIn("GPIO_PULLUP_DISABLE", drive)
+        self.assertIn("GPIO_PULLDOWN_DISABLE", drive)
+
+    def test_tach_readiness_is_established_before_actuation(self):
+        hold = _function_body(_read("firmware/common/db_fan.c"), "db_fan_hold_outcome_t db_fan_hold(")
+        ready = hold.index("ops->tach_ready(")
+        self.assertLess(hold.index("db_fan_release(fixture)"), ready)
+        self.assertLess(ready, hold.index("actuate("))
+        # The counter is cleared after actuation, immediately before the window opens.
+        clear = hold.index("ops->tach_clear(")
+        self.assertLess(hold.index("actuate("), clear)
+        self.assertLess(clear, hold.index("result->window_start_us = ops->now_us("))
+
+    def test_static_endpoints_never_use_ledc(self):
+        plan = _function_body(_read("firmware/common/db_fan.c"), "bool db_fan_stimulus_plan(")
+        self.assertLess(plan.index("DB_FAN_STIMULUS_STATIC_RELEASE"), plan.index("DB_FAN_STIMULUS_PWM"))
+        self.assertLess(plan.index("DB_FAN_STIMULUS_STATIC_SINK"), plan.index("DB_FAN_STIMULUS_PWM"))
+        self.assertIn("counts >= full_scale", plan)
+        start_pwm = _function_body(_read(FIXTURE_C), "static bool start_pwm(")
+        self.assertIn("duty_counts >= (1UL << resolution_bits)", start_pwm)
 
     def test_no_jumpjet_policy_constants(self):
         sources = list((ROOT / "firmware").rglob("*.[ch]")) + [KCONFIG]

@@ -9,54 +9,72 @@
 #include <stdio.h>
 #include <string.h>
 
-typedef enum { LINE_UNKNOWN, LINE_RELEASED, LINE_DRIVEN } fake_line_t;
-
+// Models the gate pad and the external stage: which level the pad sits at
+// (static) or which PWM it carries, and every hardware call in order.
 typedef struct {
-    fake_line_t line;
+    int gate_sink_level;
+    int pad_level; // -1: never driven
+    bool pwm_active;
+    uint32_t pwm_hz, pwm_bits, pwm_counts;
+    bool pwm_invert;
     int64_t clock_us;
-    int release_calls;
-    int apply_calls;
-    int abort_after_polls; // <0: never
+    int drive_calls;
+    int failing_drive_call; // 0: never
+    int abort_after_polls;  // <0: never
     int polls;
-    int failing_release_call;
-    bool fail_apply;
+    bool tach_available;
+    bool fail_pwm;
     bool fail_tach_clear;
     bool fail_tach_read;
     int64_t tach_edges_per_ms;
     int64_t tach_origin_us;
-    uint32_t applied_hz;
-    db_fan_pwm_plan_t applied_plan;
+    char log[256];
 } fake_fixture_t;
 
-static bool fake_release(void *ctx) {
+static void note(fake_fixture_t *fake, const char *entry) {
+    strncat(fake->log, entry, sizeof(fake->log) - strlen(fake->log) - 1);
+}
+
+static bool fake_drive_static(void *ctx, int gate_level) {
     fake_fixture_t *fake = ctx;
-    ++fake->release_calls;
-    if (fake->failing_release_call == fake->release_calls) return false;
-    fake->line = LINE_RELEASED;
+    ++fake->drive_calls;
+    note(fake, gate_level ? "S1 " : "S0 ");
+    if (fake->failing_drive_call == fake->drive_calls) return false;
+    fake->pwm_active = false;
+    fake->pad_level = gate_level;
     return true;
 }
 
-static bool fake_apply(void *ctx, uint32_t pwm_hz, const db_fan_pwm_plan_t *plan) {
+static bool fake_start_pwm(void *ctx, uint32_t pwm_hz, uint32_t bits, uint32_t counts, bool invert) {
     fake_fixture_t *fake = ctx;
-    ++fake->apply_calls;
-    if (fake->fail_apply) {
-        fake->line = LINE_DRIVEN; // a partial configuration may already drive the pad
-        return false;
-    }
-    fake->applied_hz = pwm_hz;
-    fake->applied_plan = *plan;
-    fake->line = LINE_DRIVEN;
+    note(fake, "PWM ");
+    // Mirrors the ESP32-S3 LEDC constraint the planner must respect.
+    assert(counts > 0 && counts < (1U << bits));
+    fake->pwm_active = true; // a failed configuration may already drive the pad
+    if (fake->fail_pwm) return false;
+    fake->pwm_hz = pwm_hz;
+    fake->pwm_bits = bits;
+    fake->pwm_counts = counts;
+    fake->pwm_invert = invert;
     return true;
+}
+
+static bool fake_tach_ready(void *ctx) {
+    fake_fixture_t *fake = ctx;
+    note(fake, "READY ");
+    return fake->tach_available;
 }
 
 static bool fake_tach_clear(void *ctx) {
     fake_fixture_t *fake = ctx;
+    note(fake, "CLEAR ");
     fake->tach_origin_us = fake->clock_us;
     return !fake->fail_tach_clear;
 }
 
 static bool fake_tach_read(void *ctx, int64_t *edges) {
     fake_fixture_t *fake = ctx;
+    note(fake, "READ ");
     if (fake->fail_tach_read) return false;
     *edges = (fake->clock_us - fake->tach_origin_us) / 1000 * fake->tach_edges_per_ms;
     return true;
@@ -71,12 +89,39 @@ static bool fake_should_abort(void *ctx) {
 
 static void fake_sleep(void *ctx, uint32_t ms) { ((fake_fixture_t *)ctx)->clock_us += (int64_t)ms * 1000; }
 
-static db_fan_ops_t fake_ops(fake_fixture_t *fake) {
-    memset(fake, 0, sizeof(*fake));
-    fake->abort_after_polls = -1;
-    fake->clock_us = 5000000;
-    return (db_fan_ops_t){fake_release, fake_apply, fake_tach_clear, fake_tach_read, fake_now,
-                          fake_should_abort, fake_sleep, fake};
+static const db_fan_ops_t fake_ops_table = {fake_drive_static, fake_start_pwm, fake_tach_ready, fake_tach_clear,
+                                            fake_tach_read,    fake_now,       fake_should_abort, fake_sleep, NULL};
+
+typedef struct {
+    fake_fixture_t fake;
+    db_fan_ops_t ops;
+    db_fan_fixture_t fixture;
+} fake_bench_t;
+
+static void fake_bench(fake_bench_t *bench, int gate_sink_level) {
+    memset(bench, 0, sizeof(*bench));
+    bench->fake.gate_sink_level = gate_sink_level;
+    bench->fake.pad_level = -1;
+    bench->fake.abort_after_polls = -1;
+    bench->fake.clock_us = 5000000;
+    bench->fake.tach_available = true;
+    bench->ops = fake_ops_table;
+    bench->ops.ctx = &bench->fake;
+    bench->fixture.ops = &bench->ops;
+    bench->fixture.gate_sink_level = gate_sink_level;
+}
+
+// Fraction of time, in milli-percent, the modeled stage sinks the fan line.
+static uint32_t line_sink_milli_pct(const fake_fixture_t *fake) {
+    if (!fake->pwm_active) return fake->pad_level == fake->gate_sink_level ? 100000U : 0U;
+    const uint64_t full = 1ULL << fake->pwm_bits;
+    const uint64_t pad_high = fake->pwm_invert ? full - fake->pwm_counts : fake->pwm_counts;
+    const uint64_t sinking = fake->gate_sink_level ? pad_high : full - pad_high;
+    return (uint32_t)((sinking * 100000U + full / 2U) / full);
+}
+
+static bool line_released(const fake_fixture_t *fake) {
+    return !fake->pwm_active && fake->pad_level == (fake->gate_sink_level ? 0 : 1);
 }
 
 static db_run_request_t fan_request(uint32_t pwm_hz, uint16_t tenths, uint32_t duration_ms) {
@@ -149,32 +194,40 @@ static void test_parameter_bounds(void) {
     assert(!db_fan_sink_duty_from_pct(INFINITY, &tenths));
 }
 
-static void test_pwm_plan(void) {
-    db_fan_pwm_plan_t plan;
-    assert(db_fan_pwm_plan(25000, 500, &plan));
-    assert(plan.resolution_bits == 11 && plan.duty_counts == 1024 && plan.applied_milli_pct == 50000);
-    assert(db_fan_pwm_plan(25000, 333, &plan));
-    assert(plan.duty_counts == 682 && plan.applied_milli_pct == 33301);
-    assert(db_fan_pwm_plan(DB_FAN_PWM_HZ_MIN, 1000, &plan));
-    assert(plan.resolution_bits == 14 && plan.duty_counts == 16384 && plan.applied_milli_pct == 100000);
-    assert(db_fan_pwm_plan(DB_FAN_PWM_HZ_MAX, 0, &plan));
-    assert(plan.resolution_bits == 10 && plan.duty_counts == 0 && plan.applied_milli_pct == 0);
-    assert(!db_fan_pwm_plan(DB_FAN_PWM_HZ_MIN - 1, 500, &plan));
-    assert(!db_fan_pwm_plan(DB_FAN_PWM_HZ_MAX + 1, 500, &plan));
-    assert(!db_fan_pwm_plan(25000, 1001, &plan));
+static void test_stimulus_plan(void) {
+    db_fan_stimulus_t stimulus;
+    // 0 % and 100 % are static gate levels, never LEDC.
+    assert(db_fan_stimulus_plan(25000, 0, &stimulus));
+    assert(stimulus.mode == DB_FAN_STIMULUS_STATIC_RELEASE && stimulus.resolution_bits == 0 &&
+           stimulus.duty_counts == 0 && stimulus.applied_milli_pct == 0);
+    assert(db_fan_stimulus_plan(DB_FAN_PWM_HZ_MIN, 1000, &stimulus));
+    assert(stimulus.mode == DB_FAN_STIMULUS_STATIC_SINK && stimulus.resolution_bits == 0 &&
+           stimulus.duty_counts == 0 && stimulus.applied_milli_pct == 100000);
+    assert(strcmp(db_fan_stimulus_mode_name(DB_FAN_STIMULUS_STATIC_SINK), "static_sink") == 0);
+    assert(db_fan_stimulus_plan(25000, 500, &stimulus));
+    assert(stimulus.mode == DB_FAN_STIMULUS_PWM && stimulus.resolution_bits == 11 && stimulus.duty_counts == 1024 &&
+           stimulus.applied_milli_pct == 50000);
+    assert(db_fan_stimulus_plan(25000, 333, &stimulus));
+    assert(stimulus.duty_counts == 682 && stimulus.applied_milli_pct == 33301);
+    assert(!db_fan_stimulus_plan(DB_FAN_PWM_HZ_MIN - 1, 500, &stimulus));
+    assert(!db_fan_stimulus_plan(DB_FAN_PWM_HZ_MAX + 1, 500, &stimulus));
+    assert(!db_fan_stimulus_plan(25000, 1001, &stimulus));
     // Every accepted frequency keeps 0.1 % resolution and a legal LEDC divider,
-    // and the programmed duty is within half a count of the request.
+    // the compare value stays strictly inside 1..2^bits-1, and the programmed
+    // duty is within half a count of the request.
     static const uint16_t duties[] = {1, 355, 999};
     for (uint32_t hz = DB_FAN_PWM_HZ_MIN; hz <= DB_FAN_PWM_HZ_MAX; ++hz) {
         for (size_t i = 0; i < sizeof(duties) / sizeof(duties[0]); ++i) {
-            assert(db_fan_pwm_plan(hz, duties[i], &plan));
-            assert(plan.resolution_bits >= DB_FAN_MIN_RESOLUTION_BITS &&
-                   plan.resolution_bits <= DB_FAN_MAX_RESOLUTION_BITS);
+            assert(db_fan_stimulus_plan(hz, duties[i], &stimulus));
+            assert(stimulus.mode == DB_FAN_STIMULUS_PWM);
+            assert(stimulus.resolution_bits >= DB_FAN_MIN_RESOLUTION_BITS &&
+                   stimulus.resolution_bits <= DB_FAN_MAX_RESOLUTION_BITS);
             const uint64_t divider_x256 =
-                (uint64_t)DB_FAN_LEDC_SOURCE_HZ * 256U / ((uint64_t)hz << plan.resolution_bits);
+                (uint64_t)DB_FAN_LEDC_SOURCE_HZ * 256U / ((uint64_t)hz << stimulus.resolution_bits);
             assert(divider_x256 >= 256U && divider_x256 <= DB_FAN_LEDC_DIVIDER_MAX_X256);
-            const int64_t error_milli = (int64_t)plan.applied_milli_pct - (int64_t)duties[i] * 100;
-            const int64_t half_count_milli = (100000 >> plan.resolution_bits) / 2 + 1;
+            assert(stimulus.duty_counts >= 1 && stimulus.duty_counts < (1U << stimulus.resolution_bits));
+            const int64_t error_milli = (int64_t)stimulus.applied_milli_pct - (int64_t)duties[i] * 100;
+            const int64_t half_count_milli = (100000 >> stimulus.resolution_bits) / 2 + 1;
             assert(error_milli <= half_count_milli && error_milli >= -half_count_milli);
         }
     }
@@ -217,92 +270,181 @@ static void test_metrics_unknown_and_known_ppr(void) {
     assert(!db_fan_format_metrics(metrics, 20, &result, 0));
 }
 
-static void assert_released(const fake_fixture_t *fake, const db_fan_hold_result_t *result) {
-    assert(fake->line == LINE_RELEASED);
-    assert(result->released);
+static void test_parameters_name_the_stimulus(void) {
+    char parameters[DB_FAN_PARAMETERS_JSON_LEN];
+    db_fan_stimulus_t stimulus;
+    assert(db_fan_stimulus_plan(25000, 0, &stimulus));
+    assert(db_fan_format_parameters(parameters, sizeof(parameters), 25000, 0, 1000, &stimulus));
+    assert(strcmp(parameters, "{\"pwm_hz\":25000,\"sink_duty_pct\":0.0,\"duration_ms\":1000,"
+                              "\"stimulus\":\"static_release\",\"applied_sink_duty_pct\":0.000}") == 0);
+    assert(db_fan_stimulus_plan(25000, 1000, &stimulus));
+    assert(db_fan_format_parameters(parameters, sizeof(parameters), 25000, 1000, 1000, &stimulus));
+    assert(strcmp(parameters, "{\"pwm_hz\":25000,\"sink_duty_pct\":100.0,\"duration_ms\":1000,"
+                              "\"stimulus\":\"static_sink\",\"applied_sink_duty_pct\":100.000}") == 0);
+    assert(db_fan_stimulus_plan(25000, 355, &stimulus));
+    assert(db_fan_format_parameters(parameters, sizeof(parameters), 25000, 355, 1000, &stimulus));
+    assert(strstr(parameters, "\"stimulus\":\"pwm\",\"applied_sink_duty_pct\":35.498,\"duty_resolution_bits\":11}"));
+}
+
+// 0 %, an intermediate PWM value, and 100 % for one stage polarity: the
+// endpoints never touch PWM, and the line ends released even when aborted.
+static void test_stimulus_modes_for_polarity(int gate_sink_level) {
+    static const struct {
+        uint16_t tenths;
+        db_fan_stimulus_mode_t mode;
+        bool uses_pwm;
+    } cases[] = {
+        {0, DB_FAN_STIMULUS_STATIC_RELEASE, false},
+        {355, DB_FAN_STIMULUS_PWM, true},
+        {1000, DB_FAN_STIMULUS_STATIC_SINK, false},
+    };
+    const int release_level = gate_sink_level ? 0 : 1;
+    for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); ++i) {
+        fake_bench_t bench;
+        fake_bench(&bench, gate_sink_level);
+        assert(db_fan_release_level(&bench.fixture) == release_level);
+        bench.fake.abort_after_polls = 3;
+        db_fan_hold_result_t result;
+        assert(db_fan_hold(&bench.fixture, 25000, cases[i].tenths, 60000, &result) == DB_FAN_HOLD_ABORTED);
+        assert(result.stimulus.mode == cases[i].mode);
+        assert(result.actuated == (cases[i].mode != DB_FAN_STIMULUS_STATIC_RELEASE));
+        assert(line_released(&bench.fake) && result.released);
+        assert((strstr(bench.fake.log, "PWM") != NULL) == cases[i].uses_pwm);
+    }
+}
+
+// Captures the modeled line state while the hold is running.
+static uint32_t observed_sink_milli_pct;
+static bool observing_should_abort(void *ctx) {
+    observed_sink_milli_pct = line_sink_milli_pct(ctx);
+    return false;
+}
+
+static void test_hold_drives_requested_sink_fraction(int gate_sink_level) {
+    static const uint16_t duties[] = {0, 1, 355, 999, 1000};
+    for (size_t i = 0; i < sizeof(duties) / sizeof(duties[0]); ++i) {
+        fake_bench_t bench;
+        fake_bench(&bench, gate_sink_level);
+        bench.ops.should_abort = observing_should_abort;
+        observed_sink_milli_pct = UINT32_MAX;
+        db_fan_hold_result_t result;
+        assert(db_fan_hold(&bench.fixture, 25000, duties[i], 100, &result) == DB_FAN_HOLD_PASS);
+        assert(observed_sink_milli_pct == result.stimulus.applied_milli_pct);
+        assert(line_released(&bench.fake) && result.released);
+    }
 }
 
 static void test_release_on_every_path(void) {
-    fake_fixture_t fake;
-    db_fan_ops_t ops = fake_ops(&fake);
+    fake_bench_t bench;
     db_fan_hold_result_t result;
 
-    // Boot: the default state is released.
-    assert(db_fan_boot_release(&ops) && fake.line == LINE_RELEASED && fake.apply_calls == 0);
+    // Boot: the default state is released, and nothing else is touched.
+    fake_bench(&bench, 1);
+    assert(db_fan_release(&bench.fixture) && line_released(&bench.fake));
+    assert(strcmp(bench.fake.log, "S0 ") == 0);
+    fake_bench(&bench, 0);
+    assert(db_fan_release(&bench.fixture) && line_released(&bench.fake));
+    assert(strcmp(bench.fake.log, "S1 ") == 0);
 
-    // Run end.
-    ops = fake_ops(&fake);
-    fake.tach_edges_per_ms = 3;
-    assert(db_fan_hold(&ops, 25000, 355, 2000, &result) == DB_FAN_HOLD_PASS);
-    assert_released(&fake, &result);
-    assert(fake.release_calls == 2 && fake.apply_calls == 1 && fake.applied_hz == 25000);
-    assert(fake.applied_plan.duty_counts == result.plan.duty_counts);
+    // Run end: release, tach readiness, actuate, clear, hold, read, release.
+    fake_bench(&bench, 1);
+    bench.fake.tach_edges_per_ms = 3;
+    assert(db_fan_hold(&bench.fixture, 25000, 355, 2000, &result) == DB_FAN_HOLD_PASS);
+    assert(line_released(&bench.fake) && result.released);
+    assert(strcmp(bench.fake.log, "S0 READY PWM CLEAR READ S0 ") == 0);
+    assert(bench.fake.pwm_hz == 25000 && bench.fake.pwm_counts == result.stimulus.duty_counts);
     assert(result.tach_valid && !result.error);
     assert(result.window_end_us - result.window_start_us == 2000000);
     assert(result.edge_count == 6000 && result.released_us >= result.window_end_us);
 
     // Abort.
-    ops = fake_ops(&fake);
-    fake.abort_after_polls = 5;
-    assert(db_fan_hold(&ops, 25000, 500, 60000, &result) == DB_FAN_HOLD_ABORTED);
-    assert_released(&fake, &result);
+    fake_bench(&bench, 1);
+    bench.fake.abort_after_polls = 5;
+    assert(db_fan_hold(&bench.fixture, 25000, 1000, 60000, &result) == DB_FAN_HOLD_ABORTED);
+    assert(line_released(&bench.fake) && result.released);
     assert(result.tach_valid && !result.error);
     assert(result.window_end_us - result.window_start_us == 5 * DB_FAN_ABORT_POLL_MS * 1000);
+    assert(strcmp(bench.fake.log, "S0 READY S1 CLEAR READ S0 ") == 0);
 
-    // Errors: apply, tach clear, tach read.
-    ops = fake_ops(&fake);
-    fake.fail_apply = true;
-    assert(db_fan_hold(&ops, 25000, 500, 1000, &result) == DB_FAN_HOLD_FAIL);
-    assert_released(&fake, &result);
-    assert(strcmp(result.error, "apply_failed") == 0);
+    // Tach unavailable: refused before any actuation.
+    for (int level = 0; level <= 1; ++level) {
+        static const uint16_t duties[] = {0, 355, 1000};
+        for (size_t i = 0; i < sizeof(duties) / sizeof(duties[0]); ++i) {
+            fake_bench(&bench, level);
+            bench.fake.tach_available = false;
+            assert(db_fan_hold(&bench.fixture, 25000, duties[i], 1000, &result) == DB_FAN_HOLD_FAIL);
+            assert(strcmp(result.error, "tach_unavailable") == 0 && !result.actuated && !result.tach_valid);
+            assert(strcmp(bench.fake.log, level ? "S0 READY S0 " : "S1 READY S1 ") == 0);
+            assert(line_released(&bench.fake) && result.released);
+        }
+    }
 
-    ops = fake_ops(&fake);
-    fake.fail_tach_clear = true;
-    assert(db_fan_hold(&ops, 25000, 500, 1000, &result) == DB_FAN_HOLD_FAIL);
-    assert_released(&fake, &result);
+    // Errors after readiness: PWM, static sink, tach clear, tach read.
+    fake_bench(&bench, 1);
+    bench.fake.fail_pwm = true;
+    assert(db_fan_hold(&bench.fixture, 25000, 500, 1000, &result) == DB_FAN_HOLD_FAIL);
+    assert(line_released(&bench.fake) && result.released);
+    assert(strcmp(result.error, "actuation_failed") == 0);
+
+    fake_bench(&bench, 0);
+    bench.fake.failing_drive_call = 2; // the static-sink drive
+    assert(db_fan_hold(&bench.fixture, 25000, 1000, 1000, &result) == DB_FAN_HOLD_FAIL);
+    assert(line_released(&bench.fake) && result.released);
+    assert(strcmp(result.error, "actuation_failed") == 0);
+
+    fake_bench(&bench, 1);
+    bench.fake.fail_tach_clear = true;
+    assert(db_fan_hold(&bench.fixture, 25000, 500, 1000, &result) == DB_FAN_HOLD_FAIL);
+    assert(line_released(&bench.fake) && result.released);
     assert(strcmp(result.error, "tach_clear_failed") == 0 && !result.tach_valid);
 
-    ops = fake_ops(&fake);
-    fake.fail_tach_read = true;
-    assert(db_fan_hold(&ops, 25000, 500, 1000, &result) == DB_FAN_HOLD_FAIL);
-    assert_released(&fake, &result);
+    fake_bench(&bench, 1);
+    bench.fake.fail_tach_read = true;
+    assert(db_fan_hold(&bench.fixture, 25000, 500, 1000, &result) == DB_FAN_HOLD_FAIL);
+    assert(line_released(&bench.fake) && result.released);
     assert(strcmp(result.error, "tach_read_failed") == 0 && !result.tach_valid);
 
-    // Invalid parameters never reach apply and still release.
-    ops = fake_ops(&fake);
-    assert(db_fan_hold(&ops, 5, 500, 1000, &result) == DB_FAN_HOLD_FAIL);
-    assert_released(&fake, &result);
-    assert(fake.apply_calls == 0 && strcmp(result.error, "invalid_parameters") == 0);
-    ops = fake_ops(&fake);
-    assert(db_fan_hold(&ops, 25000, 500, 0, &result) == DB_FAN_HOLD_FAIL);
-    assert(fake.apply_calls == 0);
+    // Invalid parameters never reach actuation and still release.
+    fake_bench(&bench, 1);
+    assert(db_fan_hold(&bench.fixture, 5, 500, 1000, &result) == DB_FAN_HOLD_FAIL);
+    assert(line_released(&bench.fake) && result.released);
+    assert(strcmp(bench.fake.log, "S0 ") == 0 && strcmp(result.error, "invalid_parameters") == 0);
+    fake_bench(&bench, 1);
+    assert(db_fan_hold(&bench.fixture, 25000, 500, 0, &result) == DB_FAN_HOLD_FAIL);
+    assert(strcmp(bench.fake.log, "S0 ") == 0);
 
-    // A stimulus is never applied unless the line was first released.
-    ops = fake_ops(&fake);
-    fake.failing_release_call = 1;
-    assert(db_fan_hold(&ops, 25000, 500, 1000, &result) == DB_FAN_HOLD_FAIL);
-    assert(fake.apply_calls == 0 && strcmp(result.error, "pre_release_failed") == 0);
-    assert_released(&fake, &result); // the exit-path release still ran
+    // Nothing is actuated unless the line was first released.
+    fake_bench(&bench, 1);
+    bench.fake.failing_drive_call = 1;
+    assert(db_fan_hold(&bench.fixture, 25000, 1000, 1000, &result) == DB_FAN_HOLD_FAIL);
+    assert(strcmp(result.error, "pre_release_failed") == 0);
+    assert(strcmp(bench.fake.log, "S0 S0 ") == 0); // the exit-path release still ran
+    assert(line_released(&bench.fake) && result.released);
 
     // A release that cannot be verified is a failure even after a clean hold.
-    ops = fake_ops(&fake);
-    fake.failing_release_call = 2;
-    assert(db_fan_hold(&ops, 25000, 500, 1000, &result) == DB_FAN_HOLD_FAIL);
+    fake_bench(&bench, 1);
+    bench.fake.failing_drive_call = 3; // pre-release, static sink, final release
+    assert(db_fan_hold(&bench.fixture, 25000, 1000, 1000, &result) == DB_FAN_HOLD_FAIL);
     assert(!result.released && strcmp(result.error, "release_failed") == 0);
-    assert(fake.line == LINE_DRIVEN);
+    assert(!line_released(&bench.fake));
 
+    // Missing or malformed fixture.
     assert(db_fan_hold(NULL, 25000, 500, 1000, &result) == DB_FAN_HOLD_FAIL);
-    assert(!db_fan_boot_release(NULL));
+    assert(!db_fan_release(NULL));
+    fake_bench(&bench, 1);
+    bench.fixture.gate_sink_level = 2;
+    assert(db_fan_hold(&bench.fixture, 25000, 500, 1000, &result) == DB_FAN_HOLD_FAIL);
+    assert(strcmp(bench.fake.log, "") == 0);
 }
 
 // The phase_end envelope must fit one event slot; main.c stores truncated JSON
 // otherwise. Uses generous but physically plausible values: ~115 days uptime,
 // a one-hour hold at 30 kHz edges, PPR 1, and a failed release.
 static void test_phase_end_fits_event_slot(void) {
-    db_fan_pwm_plan_t plan;
-    assert(db_fan_pwm_plan(DB_FAN_PWM_HZ_MAX, 999, &plan));
+    db_fan_stimulus_t stimulus;
+    assert(db_fan_stimulus_plan(DB_FAN_PWM_HZ_MAX, 999, &stimulus));
     char parameters[DB_FAN_PARAMETERS_JSON_LEN];
-    assert(db_fan_format_parameters(parameters, sizeof(parameters), DB_FAN_PWM_HZ_MAX, 999, 3600000, &plan));
+    assert(db_fan_format_parameters(parameters, sizeof(parameters), DB_FAN_PWM_HZ_MAX, 999, 3600000, &stimulus));
     db_fan_hold_result_t result = {
         .window_start_us = 9999999999999LL, .window_end_us = 9999999999999LL + 3600000000LL,
         .released_us = 9999999999999LL + 3600001000LL, .edge_count = 108000000, .tach_valid = true,
@@ -322,9 +464,14 @@ static void test_phase_end_fits_event_slot(void) {
 int main(void) {
     test_capability_gate();
     test_parameter_bounds();
-    test_pwm_plan();
+    test_stimulus_plan();
     test_tach_math();
     test_metrics_unknown_and_known_ppr();
+    test_parameters_name_the_stimulus();
+    for (int level = 0; level <= 1; ++level) {
+        test_stimulus_modes_for_polarity(level);
+        test_hold_drives_requested_sink_fraction(level);
+    }
     test_release_on_every_path();
     test_phase_end_fits_event_slot();
     printf("db_fan tests passed (%s profile)\n", DB_FAN_FIXTURE_BUILD ? "fan-fixture" : "normal");

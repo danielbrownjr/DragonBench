@@ -61,7 +61,14 @@ _Static_assert(CONFIG_DB_FAN_TACH_PPR == 0 || sizeof(CONFIG_DB_FAN_TACH_PPR_EVID
 #define FAN_LEDC_CHANNEL LEDC_CHANNEL_0
 #define TACH_HIGH_LIMIT 32767
 
-typedef enum { LINE_UNCONFIGURED, LINE_RELEASED, LINE_DRIVEN, LINE_RELEASE_FAILED } line_state_t;
+typedef enum {
+    LINE_UNCONFIGURED,
+    LINE_RELEASED,
+    LINE_STATIC_SINK,
+    LINE_PWM,
+    LINE_RELEASE_FAILED,
+    LINE_DRIVE_FAILED,
+} line_state_t;
 
 static volatile line_state_t line_state = LINE_UNCONFIGURED;
 static bool ledc_channel_active;
@@ -72,19 +79,21 @@ static bool (*abort_requested)(void);
 static const char *line_state_name(line_state_t state) {
     switch (state) {
         case LINE_RELEASED: return "released";
-        case LINE_DRIVEN: return "driven";
+        case LINE_STATIC_SINK: return "static_sink";
+        case LINE_PWM: return "pwm";
         case LINE_RELEASE_FAILED: return "release_failed";
+        case LINE_DRIVE_FAILED: return "drive_failed";
         default: return "unconfigured";
     }
 }
 
-// Detaches the gate from LEDC by routing it back to a plain GPIO output at the
-// release level (output register first, so the switch cannot glitch to sink),
-// then reads the pad back. No internal pulls: the external gate resistor owns
+// Routes the gate pad to a plain GPIO output at gate_level, detaching LEDC
+// (output register first, so the switch cannot glitch to the other level),
+// then reads the pad back. No internal pulls: the external gate/base bias owns
 // the level whenever the pin is not driven, including reset and boot.
-static bool release_line(void *ctx) {
+static bool drive_static(void *ctx, int gate_level) {
     (void)ctx;
-    gpio_set_level(GATE_GPIO, GATE_RELEASE_LEVEL);
+    gpio_set_level(GATE_GPIO, gate_level);
     const gpio_config_t gate = {
         .pin_bit_mask = 1ULL << CONFIG_DB_FAN_PWM_GATE_GPIO,
         .mode = GPIO_MODE_INPUT_OUTPUT,
@@ -92,24 +101,26 @@ static bool release_line(void *ctx) {
         .pull_down_en = GPIO_PULLDOWN_DISABLE,
         .intr_type = GPIO_INTR_DISABLE,
     };
-    bool ok = gpio_config(&gate) == ESP_OK && gpio_set_level(GATE_GPIO, GATE_RELEASE_LEVEL) == ESP_OK &&
-              gpio_get_level(GATE_GPIO) == GATE_RELEASE_LEVEL;
+    const bool ok = gpio_config(&gate) == ESP_OK && gpio_set_level(GATE_GPIO, gate_level) == ESP_OK &&
+                    gpio_get_level(GATE_GPIO) == gate_level;
     if (ledc_channel_active) {
         // The pad is already off LEDC; this only stops the channel.
         ledc_stop(FAN_LEDC_MODE, FAN_LEDC_CHANNEL, 0);
         ledc_channel_active = false;
     }
-    line_state = ok ? LINE_RELEASED : LINE_RELEASE_FAILED;
+    const bool release = gate_level == GATE_RELEASE_LEVEL;
+    line_state = ok ? (release ? LINE_RELEASED : LINE_STATIC_SINK) : (release ? LINE_RELEASE_FAILED : LINE_DRIVE_FAILED);
     return ok;
 }
 
-// LEDC duty is the fraction of each period the stage sinks the line. An
-// inverting stage (sink at gate low) inverts the pad instead of the duty.
-static bool apply_stimulus(void *ctx, uint32_t pwm_hz, const db_fan_pwm_plan_t *plan) {
+// Used only strictly between 0 % and 100 % sink, so duty_counts is always
+// 1..2^bits-1 (ESP32-S3 LEDC must not be given 2^duty_resolution).
+static bool start_pwm(void *ctx, uint32_t pwm_hz, uint32_t resolution_bits, uint32_t duty_counts, bool invert_output) {
     (void)ctx;
+    if (duty_counts == 0 || duty_counts >= (1UL << resolution_bits)) return false;
     const ledc_timer_config_t timer = {
         .speed_mode = FAN_LEDC_MODE,
-        .duty_resolution = (ledc_timer_bit_t)plan->resolution_bits,
+        .duty_resolution = (ledc_timer_bit_t)resolution_bits,
         .timer_num = FAN_LEDC_TIMER,
         .freq_hz = pwm_hz,
         .clk_cfg = LEDC_USE_APB_CLK,
@@ -121,14 +132,21 @@ static bool apply_stimulus(void *ctx, uint32_t pwm_hz, const db_fan_pwm_plan_t *
         .channel = FAN_LEDC_CHANNEL,
         .intr_type = LEDC_INTR_DISABLE,
         .timer_sel = FAN_LEDC_TIMER,
-        .duty = plan->duty_counts,
+        .duty = duty_counts,
         .hpoint = 0,
-        .flags.output_invert = GATE_SINK_LEVEL ? 0 : 1,
+        .flags.output_invert = invert_output ? 1 : 0,
     };
     ledc_channel_active = true;
     if (ledc_channel_config(&channel) != ESP_OK) return false;
-    line_state = LINE_DRIVEN;
+    line_state = LINE_PWM;
     return true;
+}
+
+// Readiness without side effects: the unit exists and its count is readable.
+static bool tach_is_ready(void *ctx) {
+    (void)ctx;
+    int count = 0;
+    return tach_ready && pcnt_unit_get_count(tach_unit, &count) == ESP_OK;
 }
 
 static bool tach_clear(void *ctx) {
@@ -161,14 +179,17 @@ static void sleep_ms(void *ctx, uint32_t ms) {
 }
 
 static const db_fan_ops_t ops = {
-    .release = release_line,
-    .apply = apply_stimulus,
+    .drive_static = drive_static,
+    .start_pwm = start_pwm,
+    .tach_ready = tach_is_ready,
     .tach_clear = tach_clear,
     .tach_read = tach_read,
     .now_us = now_us,
     .should_abort = hold_should_abort,
     .sleep_ms = sleep_ms,
 };
+
+static const db_fan_fixture_t fixture = {.ops = &ops, .gate_sink_level = GATE_SINK_LEVEL};
 
 // Counts falling edges only, so edges equal tach pulses; the accumulating
 // watch point at the 16-bit limit extends the hardware counter.
@@ -194,10 +215,10 @@ static bool tach_init(void) {
            pcnt_unit_clear_count(tach_unit) == ESP_OK && pcnt_unit_start(tach_unit) == ESP_OK;
 }
 
-static void shutdown_release(void) { release_line(NULL); }
+static void shutdown_release(void) { db_fan_release(&fixture); }
 
 void fan_fixture_boot(void) {
-    if (!db_fan_boot_release(&ops)) ESP_LOGE(TAG, "gate release could not be verified at boot");
+    if (!db_fan_release(&fixture)) ESP_LOGE(TAG, "gate release could not be verified at boot");
     tach_ready = tach_init();
     if (!tach_ready) ESP_LOGE(TAG, "tach capture unavailable on GPIO%d", CONFIG_DB_FAN_TACH_GPIO);
     if (esp_register_shutdown_handler(shutdown_release) != ESP_OK) ESP_LOGW(TAG, "no shutdown release handler");
@@ -209,7 +230,7 @@ db_fan_hold_outcome_t fan_fixture_hold(const db_run_request_t *request, bool (*s
                                        db_fan_hold_result_t *result) {
     abort_requested = should_abort;
     const db_fan_hold_outcome_t outcome =
-        db_fan_hold(&ops, request->pwm_hz, request->sink_duty_tenths_pct, request->duration_ms, result);
+        db_fan_hold(&fixture, request->pwm_hz, request->sink_duty_tenths_pct, request->duration_ms, result);
     abort_requested = NULL;
     return outcome;
 }

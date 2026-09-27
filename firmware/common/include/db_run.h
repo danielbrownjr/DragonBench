@@ -7,7 +7,7 @@
 #define DB_RUN_ID_LEN 33
 #define DB_HOST_LEN 254
 #define DB_EVENT_CAPACITY 64
-#define DB_EVENT_JSON_LEN 512
+#define DB_EVENT_JSON_LEN 640
 
 typedef enum {
     DB_BOOT,

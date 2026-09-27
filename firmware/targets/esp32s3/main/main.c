@@ -125,14 +125,24 @@ static void emit_event(const char *event, const char *phase, const char *run_id,
         if (metrics) cJSON_AddItemToObject(root, "metrics", metrics);
     }
     char *json = cJSON_PrintUnformatted(root);
+    ESP_LOGI(TAG, "%s", json ? json : "{}");
+    // Never store a cut-off (invalid) JSON line: an oversized event keeps its
+    // envelope, drops parameters/metrics, and says so. The log has it all.
+    char *stored = json;
+    if (json && strlen(json) >= DB_EVENT_JSON_LEN) {
+        cJSON_DeleteItemFromObject(root, "parameters");
+        cJSON_DeleteItemFromObject(root, "metrics");
+        cJSON_AddTrueToObject(root, "truncated");
+        stored = cJSON_PrintUnformatted(root);
+    }
     xSemaphoreTake(state_lock, portMAX_DELAY);
     db_event_t *slot = &events[event_head];
     slot->seq = event_seq;
-    snprintf(slot->json, sizeof(slot->json), "%s", json ? json : "{}");
+    snprintf(slot->json, sizeof(slot->json), "%s", stored ? stored : "{}");
     event_head = (event_head + 1U) % DB_EVENT_CAPACITY;
     if (event_count < DB_EVENT_CAPACITY) ++event_count;
     xSemaphoreGive(state_lock);
-    ESP_LOGI(TAG, "%s", json ? json : "{}");
+    if (stored != json) cJSON_free(stored);
     cJSON_free(json);
     cJSON_Delete(root);
 }
@@ -265,10 +275,10 @@ static bool run_network(const db_run_request_t *request, uint64_t *tx, uint64_t 
 
 static void format_parameters(const db_run_request_t *request, char *out, size_t out_len) {
     if (request->workload == DB_FAN_PWM_HOLD) {
-        db_fan_pwm_plan_t plan = {0};
-        const bool planned = db_fan_pwm_plan(request->pwm_hz, request->sink_duty_tenths_pct, &plan);
+        db_fan_stimulus_t stimulus;
+        const bool planned = db_fan_stimulus_plan(request->pwm_hz, request->sink_duty_tenths_pct, &stimulus);
         db_fan_format_parameters(out, out_len, request->pwm_hz, request->sink_duty_tenths_pct,
-                                 request->duration_ms, planned ? &plan : NULL);
+                                 request->duration_ms, planned ? &stimulus : NULL);
         return;
     }
     snprintf(out, out_len,
@@ -592,7 +602,7 @@ static void snapshot_events_locked(event_snapshot_t *snapshot) {
 }
 
 static esp_err_t events_get(httpd_req_t *req) {
-    // Bounded: DB_EVENT_CAPACITY * DB_EVENT_JSON_LEN (~32 KiB), too large for
+    // Bounded: DB_EVENT_CAPACITY * DB_EVENT_JSON_LEN (40 KiB), too large for
     // the httpd task stack; released before returning on every path.
     event_snapshot_t *snapshot = malloc(sizeof(*snapshot));
     if (!snapshot) {
