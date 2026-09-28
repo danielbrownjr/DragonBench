@@ -1,0 +1,30 @@
+# Expected connectivity of the Rev 0 fixture, maintained by hand and reviewed
+# independently of fixture.py. check_netlist.py compares the netlist KiCad
+# extracts from the schematic against this file AND against fixture.py's
+# per-pin assignments; all three must agree.
+# Format: NET  REF.PIN ...   (order does not matter)
+
+# Controller link
+MCU_PWM       J1.1 JP1.1
+TACH_GPIO     J1.2 R4.2 R5.1 D1.3 C2.1 TP9.1
+3V3           J1.3 R3.2 D1.2 TP1.1 TP10.1
+GND           J1.4 R2.2 Q1.2 R5.2 D1.1 C2.2 NT2.2 TP2.1 TP7.1 TP11.1
+
+# PWM open-drain stage
+PWM_IN        JP1.2 R1.1 TP3.1
+PWM_GATE      R1.2 R2.1 Q1.1 TP4.1
+PWM_DRAIN     Q1.3 JP2.1 TP5.1
+FAN_PWM_RAW   JP2.2 J3.3 TP6.1
+
+# Tach
+FAN_TACH_RAW  J3.4 JP3.1 JP4.1 TP8.1
+TACH_PU       JP3.2 R3.1
+TACH_SER      JP4.2 R4.1
+
+# 24 V supply and ground star
+BENCH_24V     J2.1 F1.1 TP12.1
+24V_FUSED     F1.2 JP5.1 R6.1
+LED_A         R6.2 D2.2
+FAN_24V       JP5.2 J3.1 C1.1 TP13.1
+BENCH_GND     J2.2 D2.1 NT1.1 NT2.1
+FAN_GND       NT1.2 J3.2 C1.2 TP14.1
