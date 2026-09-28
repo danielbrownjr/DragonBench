@@ -55,13 +55,41 @@ one removes an unknown that the next depends on.
 
 ## 5. FAN_PWM_RAW with no active drive
 
-1. Land the control lead on J3.3. Keep JP2 open.
-2. Scope TP6 against TP7. Record the open-circuit voltage (drawing: ≤ 5.25 V)
-   and any waveform.
-3. Briefly short TP6 to GND through a DMM on its mA range. Record:
-   - the source current (drawing: ≤ 2 mA at 0 V)
-   - the resulting speed (drawing: 0 % = stopped)
-4. Close JP2 only if the voltage is ≤ 5.25 V and the current is ≤ 2 mA.
+1. Land the control lead on J3.3. Keep **JP2 OPEN** for the whole step.
+2. Measure the open-circuit voltage first. Scope TP6 against TP7 and record
+   the voltage and any waveform.
+3. Continue only if both are true:
+   - the lead's identity was already established in step 2, and
+   - the measured open voltage is ≤ 5.25 V, as the manufacturer drawing
+     specifies.
+
+   If the open voltage is above 5.25 V, **STOP**. Do not connect the
+   resistor. Treat the lead identity, or the assumption about the fan's
+   control interface, as wrong until it has been investigated.
+4. Temporarily connect a known resistor from TP6 (`FAN_PWM_RAW`) to TP7
+   (GND). This is a bench test part, not a fixture component:
+   - 100 Ω
+   - 1 %
+   - ≥ 0.5 W
+5. Measure the voltage across the resistor with a DMM on its **voltage**
+   range. Do not put the DMM's current input in this circuit.
+6. Calculate the current: I = V / 100 Ω.
+   - At the drawing's 2 mA maximum source current, expect about 0.200 V.
+   - That is below the control input's documented ≤ 0.4 V LOW threshold, so
+     the resistor holds the input LOW.
+7. Record:
+   - resistor value (measured, if possible)
+   - measured voltage
+   - calculated current
+   - resulting fan behaviour (drawing: 0 % = stopped)
+8. Remove the resistor.
+
+This is a **controlled low-state current measurement** at the measured
+resistor voltage. It is not an exact zero-volt short-circuit measurement.
+The drawing's "≤ 2 mA at 0 V" figure is the limit it is compared against.
+
+Close JP2 later, in step 7, only if the open voltage was ≤ 5.25 V and the
+calculated current was ≤ 2 mA.
 
 ## 6. Raw tach, before any pull-up or GPIO
 

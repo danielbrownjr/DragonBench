@@ -145,7 +145,7 @@ These are bench choices, not product GPIO assignments.
 Source: the Sanyo Denki specification drawing for **9GA0424P3J001, Rev C**,
 and the sensor specification it references, **9D0001H202**. The values below
 are transcribed from those documents. The documents themselves are not stored
-in this repository.
+in this repository; [References](#references) lists where to find them.
 
 **Control (PWM) input:**
 
@@ -188,9 +188,9 @@ Threshold voltage is not used below as proof that Q1 switches.
 
 - VDS is at most the open control voltage, **≤ 5.25 V**.
 - ID is at most the control-terminal source current, **≤ 2 mA**.
-- Q1's 30 V rating covers this signal interface only. It is **not** a claim
-  that Q1 survives `FAN_PWM_RAW` being landed on `FAN_24V`: the legitimate
-  supply reaches 26.4 V, which leaves no margin for transients. Lead identity
+- Q1 is used only as a signal-interface FET. It is **not rated** for
+  `FAN_PWM_RAW` landed on `FAN_24V`: the legitimate supply reaches 26.4 V
+  against its 30 V VDS, which leaves no margin for transients. Lead identity
   is verified before landing (BRINGUP step 2).
 
 **Driven gate voltage:**
@@ -332,14 +332,15 @@ Status key:
 | J3 | 4-pos 5.08 mm screw terminal | DUT leads by verified function | 24 V / ≤ 5.25 V / tach | Terminal order is the fixture's own; the fan's wire order is not assumed | PROVISIONAL (style) |
 | TP1–TP14 | Keystone 5000-series loops | Probe points | – | See the sheet | FINAL |
 
-Confirm the NTR4003N datasheet values before ordering. The session that drew
-this could not reach vendor PDFs, so these came from summaries of onsemi's
-datasheet:
+Q1 values are still **PROVISIONAL**. The onsemi NTR4003N datasheet is linked
+in [References](#references), but it has not been read directly: the network
+used to prepare this revision blocked it. The values used above came from
+summaries of that datasheet. Confirm them against the PDF before ordering:
 
 - VDS 30 V
-- RDS(on) 2.0 Ω max at 2.5 V
+- RDS(on) 2.0 Ω max at VGS 2.5 V
 - ESD-protected gate
-- SOT-23 pinout
+- SOT-23 pinout G=1, S=2, D=3
 - IGSS
 - Ciss
 
@@ -361,7 +362,8 @@ destructively characterized as part of this work.
    verified on the specimen**.
 2. Specimen behaviour on the control lead:
    - open-circuit voltage
-   - source current into 0 V
+   - low-state source current, measured through a 100 Ω resistor
+     (BRINGUP step 5)
    - full speed with the lead open
    - stop at 0 %
    - response at 25 kHz
@@ -375,4 +377,29 @@ destructively characterized as part of this work.
    frequency. Until then `CONFIG_DB_FAN_TACH_PPR=0`.
 6. Whether a glitch filter (C2 and/or `CONFIG_DB_FAN_TACH_GLITCH_FILTER_NS`)
    is needed. Decide from scope captures.
-7. Q1 datasheet values: IGSS, Ciss, and pinout.
+7. Q1 datasheet values: VDS, RDS(on) at VGS 2.5 V, IGSS, Ciss, and pinout.
+
+## References
+
+URLs are recorded so the sources can be found again. Copies of the PDFs are
+not committed.
+
+| Document | Identifier | Publisher | Location |
+|---|---|---|---|
+| San Ace 40 fan specification drawing | 9GA0424P3J001, Rev C | Sanyo Denki | Sanyo Denki drawing hosted by Digi-Key: https://mm.digikey.com/Volume0/opasdata/d220001/medias/docus/6283/9GA0424P3J001.pdf |
+| Sensor specification referenced by the fan drawing | 9D0001H202 | Sanyo Denki | Copy/mirror of the Sanyo Denki specification hosted by LCSC: https://atta.szlcsc.com/upload/public/pdf/source/20231027/F5C17EBD5CE131CC8C55FA436569F463.pdf |
+| NTR4003N small-signal MOSFET datasheet | NTR4003N/D | onsemi | onsemi datasheet: https://www.onsemi.com/download/data-sheet/pdf/ntr4003n-d.pdf |
+
+Digi-Key and LCSC only host copies; Sanyo Denki is the author of the first
+two documents.
+
+Verification status as of 2026-09-28:
+
+- None of the three documents could be opened from the environment used to
+  prepare this revision. The network egress proxy refused all three hosts.
+- Their titles, revisions, and electrical values were **not re-verified**
+  against these URLs.
+- The fan and sensor values in [DUT electrical facts](#dut-electrical-facts-manufacturer-documentation)
+  are as transcribed by thetechbenders from the 9GA0424P3J001 Rev C drawing
+  and the 9D0001H202 specification.
+- The Q1 values stay provisional, as described under the BOM.
