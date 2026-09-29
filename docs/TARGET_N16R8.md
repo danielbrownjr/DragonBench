@@ -1,12 +1,16 @@
 # ESP32-S3 N16R8 target profile
 
-> **Validation state: build-validated only. Physical flash/boot validation is
-> pending.** No image has been flashed to or booted on this board yet.
+> **Validation state: baseline image physically validated on one board
+> (2026-09-29).** Flash, boot, PSRAM, the status LED, both USB-C paths, the
+> access point, mDNS and the read-only API have been exercised. Fan
+> characterization and the GPIO6/7 fixture wiring have not. See
+> [Validation status](#validation-status).
 
 Board facts below come from visual inspection of the physical board and its
 silkscreen, and from Lonely Binary's interactive GPIO map for its ESP32-S3
-Gold Edition board (screenshot supplied by Dan, 2026-09-29). Nothing here has
-been measured or exercised on the board.
+Gold Edition board (screenshot supplied by Dan, 2026-09-29). Anything
+exercised on the board is marked as such under
+[Validation status](#validation-status).
 
 - Module: ESP32-S3-WROOM-1, marked `MCN16R8`
 - Flash: 16 MB
@@ -15,8 +19,10 @@ been measured or exercised on the board.
   RESET buttons, two USB-C connectors, and an external USB-UART bridge
 - USB-C connectors: labelled `UART` and `USB` on Lonely Binary's map (with
   the antenna at the top, `UART` is on the left and `USB` on the right).
-  Presumably `UART` reaches the USB-UART bridge and `USB` the native USB on
-  GPIO19/20; not checked on the board
+  Observed on the board: the left connector enumerates as a USB-UART bridge
+  (VID:PID `1A86:7522`, which Windows' WCH driver labels CH340K; the chip
+  marking has not been inspected), and the right connector as the chip's
+  native USB Serial/JTAG (`303A:1001`)
 - Onboard RGB LED: GPIO48 (silkscreen `RGB@IO48`); see
   [Status RGB LED](#status-rgb-led)
 - UART console: TX GPIO43, RX GPIO44
@@ -88,7 +94,9 @@ solder-pad pair labelled `RGB` directly beside the LED, and no power or enable
 GPIO; none is configured.
 
 Not confirmed from a primary source: the LED part (the map does not name it),
-and whether the `RGB` pad has to be bridged, or is bridged on Dan's boards.
+its supply rail, and whether the `RGB` pad has to be bridged. The pad on the
+validated board was not inspected, but its LED works (see
+[Validation status](#validation-status)).
 Secondary summaries of Lonely Binary's guide describe the LED as a WS2812 on
 GPIO48 and say the `RGB` pads must be bridged to use it. DragonBench drives it
 as a WS2812, the same as the N8R8. If the LED is not WS2812-compatible, or the
@@ -110,10 +118,46 @@ remains part of the board's baseline load.
 ## Validation status
 
 - ESP-IDF 5.3.5 builds: `baseline`, and `fan-characterization` with the
-  wiring above. Build-validated only.
-- Physical flash and boot: pending.
-- Not validated: the status RGB LED and the state of its `RGB` pad, PSRAM
-  detection and memory test at boot, reset and auto-download behavior through
-  either USB-C connector, that the `UART` and `USB` connectors reach the
-  USB-UART bridge and native USB as labelled, Wi-Fi, mDNS, workload
-  execution, fan characterization, and electrical characterization.
+  wiring above. The `fan-characterization` image is build-validated only.
+
+The `baseline` image from commit `153c6d1` (ESP-IDF 5.3.5, clean tree) was
+flashed to and exercised on one board on 2026-09-29. No fixture, fan, GPIO6/7
+wiring or 24 V supply was connected. Observed on that board:
+
+- Identity: the boot event and `/api/v1/device` report target and
+  `board_profile` `esp32s3-n16r8`, experiment profile `baseline`, and the
+  build's git SHA, clean source tree and ESP-IDF version.
+- Flash: esptool detects 16 MB (flash ID `46`/`4018`); the bootloader reports
+  16 MB in DIO mode at 80 MHz and loads the partition table above.
+- PSRAM: ESP-IDF's Octal PSRAM driver identifies an AP Memory generation-3,
+  64 Mbit (8 MB) device, and the boot-time memory test passes. The full 8 MB
+  is added to the heap at 80 MHz. Octal operation rests on that driver
+  succeeding; ESP-IDF does not print a separate bus-mode line.
+- Boot: complete boot logs over the `UART` connector show no warnings,
+  panic, watchdog reset or brownout, and the device reaches `ready` about
+  1.2 s after reset. RESET-button and bridge-RTS resets restart it to
+  `ready`; both report reset reason `power_on`, which the ROM also uses for a
+  cold power-on.
+- `UART` connector: auto-download, flash writing with hash verification,
+  RTS reset and the UART0 console log all work through it.
+- `USB` connector: auto-download and flash writing with hash verification
+  work. On a RESET press the port dropped out and re-enumerated, and boot
+  finished before the host reopened it, so no boot log was captured there;
+  use the `UART` connector for boot logs. Host-driven reset into the
+  application over this connector was not established.
+- Status LED: the factory firmware lit it, and under DragonBench it was dark
+  after both a RESET press and a cold power-up, then green at `ready`
+  (visual, untimed). The dark gap after a warm reset was clearly shorter,
+  consistent with the LED holding its previous colour until `app_main` first
+  drives it off. The observer described the green as bright, although the
+  firmware sends 16 of 255.
+- Network: the access point `DragonBench-<MAC suffix>` starts with WPA2 on
+  channel 1. The web UI and the read-only API endpoints (`/api/v1/device`,
+  `status`, `sensors`, `workloads`, `events`) answer, and the mDNS name
+  resolves and serves the API from a client on the access point.
+
+Still not validated: station mode (no credentials were present), host-driven
+reset over the `USB` connector, the USB-UART bridge part (only its USB IDs
+were seen), the LED part and supply and the state of its `RGB` pad, workload
+execution, the `fan-characterization` image, the GPIO6/7 fixture wiring, fan
+characterization, and electrical characterization.

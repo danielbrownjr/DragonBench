@@ -133,9 +133,11 @@ yet been exercised on hardware, and workload execution and electrical
 characterization remain unvalidated there too. See
 [TinyS3[D] profile](docs/TARGET_TINYS3D.md).
 
-The N16R8 profile is build-validated only: physical flash and boot validation
-is pending, and nothing has run on that board yet. See
-[N16R8 profile](docs/TARGET_N16R8.md).
+On one N16R8 board, the baseline image's flash, boot, the 8 MB Octal PSRAM
+test, the status LED, flashing through both USB-C connectors, the direct access
+point, mDNS and the read-only API have been validated. Station mode, workload
+execution, the fan-characterization image and electrical characterization
+remain unvalidated there. See [N16R8 profile](docs/TARGET_N16R8.md).
 
 The `fan-characterization` experiment profile builds with ESP-IDF 5.3.5 once
 its wiring is stated, and refuses to build without it. Its stimulus lifecycle
