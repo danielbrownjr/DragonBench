@@ -62,6 +62,8 @@ strong[data-status]{color:var(--status-color)}
 details{border-top:1px solid var(--border);padding-top:8px;margin-top:8px}
 summary{cursor:pointer;color:var(--muted-fg);font-size:.78rem;width:fit-content;font-family:ui-monospace,SFMono-Regular,Consolas,monospace}
 pre{margin:8px 0 0;max-height:320px;overflow:auto;background:var(--code);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;font:.72rem/1.5 ui-monospace,SFMono-Regular,Consolas,monospace;white-space:pre}
+a{color:var(--primary)}
+.panel-link{margin:8px 0 0}
 footer{padding:16px 0 24px;color:var(--muted-fg);text-align:center;font-size:.76rem}
 @media (max-width:900px){.metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:620px){.app-header{flex-direction:column;align-items:start}.api-status{justify-items:start}.metric-grid{grid-template-columns:1fr}.sensor-row{flex-direction:column;align-items:start}}
@@ -124,6 +126,7 @@ footer{padding:16px 0 24px;color:var(--muted-fg);text-align:center;font-size:.76
       <p class="endpoint-note" data-role="workloads-error" hidden></p>
     </div>
     <div class="workload-list" data-role="workload-fields"></div>
+    <p class="panel-link"><a href="/run">Start and watch runs</a></p>
     <details><summary>Raw /api/v1/workloads</summary><pre data-role="raw-workloads">unavailable</pre></details>
   </section>
 </main>
