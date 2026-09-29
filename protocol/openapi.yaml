@@ -34,7 +34,7 @@ paths:
                 required: [board_profile, experiment_profile, firmware_version, build, device_id, measurement_provenance]
                 properties:
                   target: {type: string}
-                  board_profile: {type: string, enum: [esp32s3-n8r8, esp32s3-tinys3d]}
+                  board_profile: {type: string, enum: [esp32s3-n8r8, esp32s3-n16r8, esp32s3-tinys3d]}
                   experiment_profile: {type: string, enum: [baseline, fan-characterization]}
                   firmware_version: {type: string}
                   build:

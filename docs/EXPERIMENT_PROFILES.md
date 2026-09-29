@@ -4,7 +4,7 @@ DragonBench is a characterization platform that grows one experiment at a time.
 Every image is exactly:
 
 - one **board profile**, the module or board it runs on
-  (`CONFIG_DB_TARGET_NAME`: `esp32s3-n8r8`, `esp32s3-tinys3d`), plus
+  (`CONFIG_DB_TARGET_NAME`: `esp32s3-n8r8`, `esp32s3-n16r8`, `esp32s3-tinys3d`), plus
 - one **experiment profile**, the narrow characterization setup it carries
   (the `DB_EXPERIMENT_PROFILE` Kconfig choice).
 

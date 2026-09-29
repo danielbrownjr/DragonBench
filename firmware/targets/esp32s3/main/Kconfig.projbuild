@@ -30,6 +30,15 @@ config DB_RF_SWITCH_GPIO
     help
         Driven low at boot to select the onboard antenna.
         TinyS3[D]: GPIO38 (high selects the external U.FL connector).
+config DB_BOARD_RESERVED_GPIO
+    int "GPIO wired to an onboard peripheral (-1 if none)"
+    range -1 48
+    default -1
+    help
+        A GPIO the board itself wires to something, so experiment fixture
+        wiring must not claim it. DragonBench does not drive it.
+        Set per board by the sdkconfig.defaults.<board> overlay.
+        ESP32-S3 N16R8 (Lonely Binary carrier): GPIO48, onboard RGB LED.
 
 choice DB_EXPERIMENT_PROFILE
     prompt "Experiment profile"

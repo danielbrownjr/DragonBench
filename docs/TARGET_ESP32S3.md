@@ -41,10 +41,11 @@ when one is configured through Kconfig or the `/setup` page. Accordingly,
 two-entry capacity. A lost station connection is retried three times
 immediately, then with backoff doubling from 5 s to a 60 s ceiling,
 indefinitely; each attempt scans channels and can briefly interrupt
-access-point clients. This profile is the default; the TinyS3[D] is described in
-[its own profile](TARGET_TINYS3D.md). Generated `sdkconfig` and
-`managed_components/` remain local; the Component Manager lockfile is tracked
-to preserve the dependency graph used by the validated build.
+access-point clients. This profile is the default; the
+[N16R8](TARGET_N16R8.md) and the [TinyS3[D]](TARGET_TINYS3D.md) have their own
+profiles. Generated `sdkconfig` and `managed_components/` remain local; the
+Component Manager lockfile is tracked to preserve the dependency graph used by
+the validated build.
 
 Octal SPI PSRAM shares the SPI0/SPI1 clock domain with flash on ESP32-S3, so
 `sdkconfig.defaults` pins flash frequency to 80 MHz alongside

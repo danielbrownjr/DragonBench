@@ -16,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        profile: [n8r8, tinys3d]
+        profile: [n8r8, n16r8, tinys3d]
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
@@ -39,9 +39,13 @@ jobs:
         # DragonBench reference wiring, NOT JumpJet wiring, and NOT hardware
         # recommendations; no fixture has been wired. Each set passes the
         # firmware's reserved/conflict guards for its board (TinyS3[D] GPIO38
-        # RF switch, N8R8 Octal PSRAM 33-37, strapping, USB, flash, console).
-        # The two boards use opposite gate sink levels so both stage
-        # polarities compile. PPR stays unknown.
+        # RF switch, N16R8 GPIO48 onboard RGB LED, Octal PSRAM 33-37 on N8R8
+        # and N16R8, strapping, USB, flash, console). n8r8 and tinys3d use
+        # opposite gate sink levels so both stage polarities compile. n16r8
+        # matches the DragonBench Rev 0 bench fixture wiring (GPIO6 gate of a
+        # non-inverting N-channel stage, GPIO7 tach): DragonBench compile/bench
+        # fixture wiring only, not JumpJet GPIOs, product requirements, or fan
+        # safety thresholds. PPR stays unknown.
         include:
           - board: tinys3d
             gate_gpio: 4
@@ -50,6 +54,10 @@ jobs:
           - board: n8r8
             gate_gpio: 6
             gate_sink_level: 0
+            tach_gpio: 7
+          - board: n16r8
+            gate_gpio: 6
+            gate_sink_level: 1
             tach_gpio: 7
     steps:
       - name: Check out repository
@@ -100,8 +108,10 @@ jobs:
       - name: Run tests
         env:
           DRAGONBENCH_REQUIRE_NODE: "1"
+          DRAGONBENCH_REQUIRE_CC: "1"
         run: |
           node --version
+          cc --version
           python -m unittest discover -s tests -v
       - name: Run reset characterization tooling tests
         run: python -m unittest tools.tests.test_parsing -v

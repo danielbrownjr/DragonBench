@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Usage: ci/build-esp32s3.sh <board> [experiment] [--expect-refusal]
-#   board:       n8r8 | tinys3d
+#   board:       n8r8 | n16r8 | tinys3d
 #   experiment:  baseline (default) | fan-characterization
 #
 # An image is one board profile plus one experiment profile. Each experiment
@@ -16,14 +16,21 @@ expect_refusal="${3:-}"
 case "$board" in
     n8r8)
         defaults="sdkconfig.defaults"
-        expect=("CONFIG_SPIRAM_MODE_OCT 1" 'CONFIG_DB_TARGET_NAME "esp32s3-n8r8"' "CONFIG_DB_RF_SWITCH_GPIO -1")
+        expect=("CONFIG_SPIRAM_MODE_OCT 1" "CONFIG_ESPTOOLPY_FLASHSIZE_8MB 1" 'CONFIG_DB_TARGET_NAME "esp32s3-n8r8"'
+                "CONFIG_DB_RF_SWITCH_GPIO -1" "CONFIG_DB_BOARD_RESERVED_GPIO -1")
+        ;;
+    n16r8)
+        defaults="sdkconfig.defaults;sdkconfig.defaults.n16r8"
+        expect=("CONFIG_SPIRAM_MODE_OCT 1" "CONFIG_ESPTOOLPY_FLASHSIZE_16MB 1" 'CONFIG_DB_TARGET_NAME "esp32s3-n16r8"'
+                "CONFIG_DB_RF_SWITCH_GPIO -1" "CONFIG_DB_BOARD_RESERVED_GPIO 48")
         ;;
     tinys3d)
         defaults="sdkconfig.defaults;sdkconfig.defaults.tinys3d"
-        expect=("CONFIG_SPIRAM_MODE_QUAD 1" 'CONFIG_DB_TARGET_NAME "esp32s3-tinys3d"' "CONFIG_DB_RF_SWITCH_GPIO 38")
+        expect=("CONFIG_SPIRAM_MODE_QUAD 1" "CONFIG_ESPTOOLPY_FLASHSIZE_8MB 1" 'CONFIG_DB_TARGET_NAME "esp32s3-tinys3d"'
+                "CONFIG_DB_RF_SWITCH_GPIO 38" "CONFIG_DB_BOARD_RESERVED_GPIO -1")
         ;;
     *)
-        echo "unknown board profile: $board (expected n8r8 or tinys3d)" >&2
+        echo "unknown board profile: $board (expected n8r8, n16r8, or tinys3d)" >&2
         exit 2
         ;;
 esac

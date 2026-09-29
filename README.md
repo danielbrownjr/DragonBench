@@ -20,12 +20,14 @@ thresholds, or fan-safety policy, and `heater_capability` and
 the board profile, experiment profile, build revision, device identity, and
 where each measured quantity comes from.
 
-Version 0.1.0 builds for two ESP32-S3 board profiles, both with 8 MB flash and
-8 MB PSRAM: the N8R8 module (Octal SPI PSRAM, CH343P USB-UART bridge; the
-default) and the Unexpected Maker TinyS3[D] (Quad SPI PSRAM, native USB
-Serial/JTAG, onboard/U.FL RF switch). Browser and CLI clients use the same
-versioned HTTP/JSON API. DUT events identify workload boundaries; all
-voltage/current evidence remains owned by external instruments.
+Version 0.1.0 builds for three ESP32-S3 board profiles, all with 8 MB PSRAM:
+the N8R8 module (8 MB flash, Octal SPI PSRAM, CH343P USB-UART bridge; the
+default), the N16R8 module on a Lonely Binary carrier (16 MB flash, Octal SPI
+PSRAM, onboard RGB LED on GPIO48), and the Unexpected Maker TinyS3[D] (8 MB
+flash, Quad SPI PSRAM, native USB Serial/JTAG, onboard/U.FL RF switch).
+Browser and CLI clients use the same versioned HTTP/JSON API. DUT events
+identify workload boundaries; all voltage/current evidence remains owned by
+external instruments.
 
 ## Quick start
 
@@ -50,6 +52,15 @@ mode differs between the boards, and the wrong one aborts at boot with
 ```text
 idf.py -D SDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.tinys3d" set-target esp32s3
 idf.py -D SDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.tinys3d" build
+```
+
+For the N16R8 module, layer its overlay the same way. It keeps the shared
+partition layout, which ends below 8 MB, so the upper half of its 16 MB flash
+is unused:
+
+```text
+idf.py -D SDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.n16r8" set-target esp32s3
+idf.py -D SDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.n16r8" build
 ```
 
 Delete a generated `sdkconfig` before switching profiles; existing values take
@@ -119,6 +130,10 @@ mDNS on both interfaces have been validated. The `/setup` page itself has not
 yet been exercised on hardware, and workload execution and electrical
 characterization remain unvalidated there too. See
 [TinyS3[D] profile](docs/TARGET_TINYS3D.md).
+
+The N16R8 profile is build-validated only: physical flash and boot validation
+is pending, and nothing has run on that board yet. See
+[N16R8 profile](docs/TARGET_N16R8.md).
 
 The `fan-characterization` experiment profile builds with ESP-IDF 5.3.5 once
 its wiring is stated, and refuses to build without it. Its stimulus lifecycle

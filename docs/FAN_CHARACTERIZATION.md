@@ -259,7 +259,7 @@ single hold.
 
 These must come from the bench before any wiring or first power:
 
-1. Board: TinyS3[D] or N8R8 module for the fixture.
+1. Board: TinyS3[D], N8R8, or N16R8 module for the fixture.
 2. Gate GPIO and tach GPIO, chosen from free, non-reserved pins on that board.
    Check each pin's reset-state pull in the ESP32-S3 datasheet IO MUX table
    against the gate resistor.

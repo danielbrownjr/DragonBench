@@ -48,7 +48,7 @@ class ProfileIsolationTests(unittest.TestCase):
         block = kconfig[kconfig.index("if DB_EXPERIMENT_FAN_CHARACTERIZATION\n"):]
         block = block[:block.index("\nendif\n")]
         self.assertEqual(kconfig.count("config DB_FAN_"), block.count("config DB_FAN_"))
-        for board in ("sdkconfig.defaults", "sdkconfig.defaults.tinys3d"):
+        for board in ("sdkconfig.defaults", "sdkconfig.defaults.n16r8", "sdkconfig.defaults.tinys3d"):
             self.assertNotIn("DB_FAN", _read(board), board)
 
     def test_overlay_only_selects_the_profile_and_assigns_no_pins(self):
