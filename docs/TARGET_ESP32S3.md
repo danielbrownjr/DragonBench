@@ -65,9 +65,10 @@ unvalidated on this module.
 
 ## Status RGB LED
 
-The N8R8 board is identified (HQ, 2026-09-29) as the VCC-GND YD-ESP32-S3,
-whose published schematic (YD-ESP32-S3-COREBOARD V1.4, 2022-09-23) includes the
-CH343P bridge observed on this module. From that schematic:
+The N8R8 board is the original DragonBench board, a VCC-GND YD-ESP32-S3
+(confirmed by Dan, 2026-09-29; it is not a Lonely Binary board). Its published
+schematic (YD-ESP32-S3-COREBOARD V1.4, 2022-09-23) includes the CH343P bridge
+observed on this module. From that schematic:
 
 - LED: XL-5050RGBC-WS2812B, powered from the 5 V rail (not a GPIO)
 - Data: GPIO48, through a 0 Ω 0603 link labelled `RGB`
@@ -89,6 +90,35 @@ a passed `CONTROLLED_REBOOT`, it stays off until a later run passes.
 Off means dark. The LED stays powered from 5 V, so its idle current remains
 part of the board's baseline load during measurement. Nothing about the LED
 has been observed on hardware through this change.
+
+## Pin compatibility with the N16R8
+
+The N8R8 (VCC-GND YD-ESP32-S3) and the [N16R8](TARGET_N16R8.md) (Lonely
+Binary Gold Edition) are different carriers, but DragonBench deliberately
+treats the pins it cares about identically on both. VCC-GND's pin table and
+schematic V1.4, and Lonely Binary's GPIO map, agree on these:
+
+| GPIO | Both boards | DragonBench |
+|---|---|---|
+| 6, 7 | plain GPIO on the headers, nothing onboard | fan fixture gate and tach |
+| 48 | onboard RGB LED data | status light; fixture wiring rejected |
+| 35–37 | used by the Octal PSRAM, unavailable (33, 34 not broken out) | rejected |
+| 19, 20 | native USB D-/D+ on its own USB-C connector | rejected |
+| 43, 44 | UART0 TX/RX to the USB-UART bridge | rejected |
+| 0, 3, 45, 46 | strapping | rejected |
+
+That is the only equivalence claimed. The carriers still differ, and each
+target profile records its own:
+
+- flash: 8 MB here, 16 MB on the N16R8
+- USB-UART bridge: CH343P here; not identified on the N16R8
+- RGB LED: a 5 V WS2812B behind a 0 Ω `RGB` link here; on the N16R8 the part
+  and supply are unconfirmed, beside a solder pad labelled `RGB`
+- YD-only parts on pins DragonBench already rejects: TX and RX LEDs on
+  GPIO43/44, a 10 kΩ pull-up to 3.3 V on GPIO3 through a `USB-JTAG` 0 Ω
+  link, the BOOT button and DTR/RTS auto-program transistors on GPIO0 and EN
+- connector labels: `UART` and `USB` are Lonely Binary's; the YD's two USB-C
+  ports go to the CH343P and to native USB (GPIO19/20)
 
 ## Partition layout
 

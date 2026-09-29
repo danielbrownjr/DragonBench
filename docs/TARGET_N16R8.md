@@ -31,6 +31,9 @@ been measured or exercised on the board.
   PSRAM). GPIO33 and 34 are not broken out. DragonBench's fixture pin guards
   already reject all of these on this board.
 - RF switch: none
+- The GPIOs DragonBench uses or rejects match the N8R8, a different carrier
+  (VCC-GND YD-ESP32-S3); see
+  [pin compatibility](TARGET_ESP32S3.md#pin-compatibility-with-the-n16r8)
 - Profile overlay: `sdkconfig.defaults.n16r8`, reported target `esp32s3-n16r8`
 
 ## Configuration
