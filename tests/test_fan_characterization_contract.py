@@ -65,6 +65,8 @@ class ProfileIsolationTests(unittest.TestCase):
         self.assertIn("DB_FAN_PIN_RESERVED(CONFIG_DB_FAN_PWM_GATE_GPIO", source)
         self.assertIn("DB_FAN_PIN_RESERVED(CONFIG_DB_FAN_TACH_GPIO", source)
         self.assertIn("CONFIG_DB_RF_SWITCH_GPIO", source)
+        self.assertIn("CONFIG_DB_STATUS_RGB_GPIO", source)
+        self.assertIn("CONFIG_DB_STATUS_RGB_POWER_GPIO", source)
         self.assertIn("CONFIG_DB_FAN_TACH_PPR_EVIDENCE", source)
 
     def test_profile_code_is_compiled_out_of_other_profiles(self):

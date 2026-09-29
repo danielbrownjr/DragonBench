@@ -25,9 +25,11 @@ the N8R8 module (8 MB flash, Octal SPI PSRAM, CH343P USB-UART bridge; the
 default), the N16R8 module on a Lonely Binary carrier (16 MB flash, Octal SPI
 PSRAM, onboard RGB LED on GPIO48), and the Unexpected Maker TinyS3[D] (8 MB
 flash, Quad SPI PSRAM, native USB Serial/JTAG, onboard/U.FL RF switch).
-Browser and CLI clients use the same versioned HTTP/JSON API. DUT events
-identify workload boundaries; all voltage/current evidence remains owned by
-external instruments.
+Each board's onboard RGB LED is DragonBench's status light: green when ready
+and idle, off at boot and throughout every run, and never available to
+fixture wiring. Browser and CLI clients use the same versioned HTTP/JSON API.
+DUT events identify workload boundaries; all voltage/current evidence remains
+owned by external instruments.
 
 ## Quick start
 

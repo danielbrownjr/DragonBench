@@ -1,7 +1,8 @@
 # Native common-state test
 
 `test_db_run.c` directly exercises the platform-neutral C workload registry,
-validation, state transitions, run identity retention, and abort behavior.
+validation, state transitions, run identity retention, abort behavior, and the
+status-light policy (`db_status_ready`).
 `test_db_fan.c` covers the fan-characterization logic: parameter bounds, the
 static-release / PWM / static-sink stimulus plan, the sink fraction the line
 sees for both gate polarities, tach readiness before actuation, tach

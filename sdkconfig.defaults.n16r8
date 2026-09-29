@@ -1,7 +1,8 @@
 # ESP32-S3-WROOM-1 module marked MCN16R8 (16 MB flash, 8 MB Octal SPI PSRAM)
-# on a Lonely Binary pluggable-terminal carrier. Octal PSRAM at 80 MHz and no
-# RF-switch GPIO come from sdkconfig.defaults; this board profile changes only
-# the flash size, the reported identity, and the onboard RGB LED reservation.
+# on a Lonely Binary pluggable-terminal carrier. Octal PSRAM at 80 MHz, no
+# RF-switch GPIO, and the GPIO48 status RGB LED (silkscreen RGB@IO48) come
+# from sdkconfig.defaults; this board profile changes only the flash size and
+# the reported identity.
 # partitions.csv is unchanged and ends below 8 MB, so the upper 8 MB of the
 # physical flash is intentionally unused (docs/TARGET_N16R8.md).
 # Build with:
@@ -9,5 +10,3 @@
 CONFIG_DB_TARGET_NAME="esp32s3-n16r8"
 CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
 # CONFIG_ESPTOOLPY_FLASHSIZE_8MB is not set
-# GPIO48 drives the carrier's onboard RGB LED (silkscreen RGB@IO48).
-CONFIG_DB_BOARD_RESERVED_GPIO=48

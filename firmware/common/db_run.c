@@ -96,3 +96,10 @@ void db_run_finish(db_run_t *run, const char *result, uint64_t now_ms) {
     run->ended_ms = now_ms;
     snprintf(run->result, sizeof(run->result), "%s", result ? result : "fail");
 }
+
+bool db_status_ready(bool device_ready, const db_run_t *run) {
+    if (!device_ready || !run) return false;
+    if (run->state == DB_RUN_IDLE) return true;
+    return run->state == DB_RUN_COMPLETE && strcmp(run->result, "pass") == 0 &&
+           run->request.workload != DB_CONTROLLED_REBOOT;
+}

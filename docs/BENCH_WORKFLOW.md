@@ -11,6 +11,13 @@
 5. Export the run and external measurements together, keeping their provenance
    distinct.
 
+The board's status RGB LED is solid green while the DUT is ready and idle and
+is turned off before a run's `phase_start`, so it is dark for the whole
+`phase_start`–`phase_end` window (and unpowered on the TinyS3[D]). It turns
+green again only after a run passes. Green outside a run is load on the
+module supply: do not use readings from between runs as baseline. See the
+target profiles for each board's LED.
+
 The host/operator owns voltage sweeps. Firmware contains no voltage thresholds
 or electrical pass/fail limits. `OTA_PARTITION_WRITE` erases, writes, and verifies
 only an inactive OTA slot; it never selects that slot for boot. Controlled reboot

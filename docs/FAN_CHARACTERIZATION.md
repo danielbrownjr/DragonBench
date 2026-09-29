@@ -96,8 +96,11 @@ Every fixture setting defaults to unset. An overlay without wiring stops the
 build with one `#error` per missing setting. A reserved or conflicting pin also
 fails the build: strapping pins (0, 3, 45, 46), USB (19, 20), flash/PSRAM
 (26–32), Octal PSRAM data pins on octal profiles (33–37), the UART0 console
-(43, 44), `CONFIG_DB_RF_SWITCH_GPIO`, or the gate and tach sharing one pin.
-Those rules only exclude pins known to be taken; they do not choose one.
+(43, 44), `CONFIG_DB_RF_SWITCH_GPIO`, the board's status RGB LED pins
+(`CONFIG_DB_STATUS_RGB_GPIO`: 48 on N8R8 and N16R8, 18 on TinyS3[D];
+`CONFIG_DB_STATUS_RGB_POWER_GPIO`: 17 on TinyS3[D]), or the gate and tach
+sharing one pin. Those rules only exclude pins known to be taken; they do not
+choose one.
 
 Create an untracked `sdkconfig.fan-characterization.local` (ignored by Git)
 stating the wired fixture:

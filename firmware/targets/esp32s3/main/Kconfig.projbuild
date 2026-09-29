@@ -30,15 +30,27 @@ config DB_RF_SWITCH_GPIO
     help
         Driven low at boot to select the onboard antenna.
         TinyS3[D]: GPIO38 (high selects the external U.FL connector).
-config DB_BOARD_RESERVED_GPIO
-    int "GPIO wired to an onboard peripheral (-1 if none)"
+config DB_STATUS_RGB_GPIO
+    int "Onboard WS2812 status RGB LED data GPIO (-1 if the board has none)"
     range -1 48
     default -1
     help
-        A GPIO the board itself wires to something, so experiment fixture
-        wiring must not claim it. DragonBench does not drive it.
-        Set per board by the sdkconfig.defaults.<board> overlay.
-        ESP32-S3 N16R8 (Lonely Binary carrier): GPIO48, onboard RGB LED.
+        Board-owned: DragonBench drives this LED as its status light (solid
+        green when ready and idle, off at boot and throughout every run),
+        and experiment fixture wiring may not claim the pin.
+        Set per board by sdkconfig.defaults[.<board>].
+        N8R8 and N16R8: GPIO48. TinyS3[D]: GPIO18.
+config DB_STATUS_RGB_POWER_GPIO
+    int "GPIO that powers the status RGB LED (-1 if it is always powered)"
+    range -1 48
+    default -1
+    help
+        Board-owned like DB_STATUS_RGB_GPIO. The LED is unpowered whenever
+        it is off. TinyS3[D]: GPIO17 supplies the LED's VDD directly.
+config DB_STATUS_RGB_POWER_ACTIVE_LEVEL
+    int "DB_STATUS_RGB_POWER_GPIO level that powers the LED"
+    range 0 1
+    default 1
 
 choice DB_EXPERIMENT_PROFILE
     prompt "Experiment profile"

@@ -63,6 +63,35 @@ watchdog, or brownout reset observed. On-device Wi-Fi/mDNS connectivity, API
 calls over Wi-Fi, workloads, and electrical characterization remain
 unvalidated on this module.
 
+## Status RGB LED
+
+The N8R8 board is identified (HQ, 2026-09-29) as the VCC-GND YD-ESP32-S3,
+whose published schematic (YD-ESP32-S3-COREBOARD V1.4, 2022-09-23) includes the
+CH343P bridge observed on this module. From that schematic:
+
+- LED: XL-5050RGBC-WS2812B, powered from the 5 V rail (not a GPIO)
+- Data: GPIO48, through a 0 Ω 0603 link labelled `RGB`
+- No power or enable GPIO
+
+Not yet checked on the physical board: whether the `RGB` link is fitted. If
+it is open, the LED is disconnected and the status light simply stays dark.
+
+DragonBench owns this LED as its status light, so experiment fixture wiring
+may not use its pins: the fan-characterization build fails if the gate or
+tach is set to one. The firmware drives it through the RMT peripheral (not
+LEDC or PCNT), one frame per change, with no task or timer. It is off from
+boot until the `ready` event, then solid dim green (green channel 16 of 255)
+while the device is ready and idle. Starting a run turns it off before the
+run's `phase_start` event, and it stays off until that run has ended. It
+turns green again only after a run passes; after a failed or aborted run, or
+a passed `CONTROLLED_REBOOT`, it stays off until a later run passes.
+
+Off means dark. The LED stays powered from 5 V, so its idle current remains
+part of the board's baseline load during measurement. Nothing about the LED
+has been observed on hardware through this change.
+
+## Partition layout
+
 The 8 MB layout uses two 3 MB OTA app slots so the inactive-partition workload
 has a real target, plus a 1 MB scratch partition. There is no factory app
 partition. The exact layout is maintained in `partitions.csv`.

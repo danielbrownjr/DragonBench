@@ -1,5 +1,5 @@
 idf_component_register(
-    SRCS "main.c" "fan_characterization.c"
+    SRCS "main.c" "fan_characterization.c" "status_rgb.c"
     INCLUDE_DIRS "."
     REQUIRES
         common
@@ -15,6 +15,7 @@ idf_component_register(
         esp_driver_gpio
         esp_driver_ledc
         esp_driver_pcnt
+        esp_driver_rmt
         esp_timer
         json
 )

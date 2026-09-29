@@ -11,7 +11,8 @@ silkscreen. Nothing here has been measured or exercised on the board.
 - PSRAM: 8 MB, Octal SPI
 - Carrier: Lonely Binary pluggable-terminal development board, with BOOT and
   RESET buttons, two USB-C connectors, and an external USB-UART bridge
-- Onboard RGB LED: GPIO48 (silkscreen `RGB@IO48`)
+- Onboard RGB LED: GPIO48 (silkscreen `RGB@IO48`); see
+  [Status RGB LED](#status-rgb-led)
 - UART console: TX GPIO43, RX GPIO44
 - Native USB: D- GPIO19, D+ GPIO20
 - Convenience silkscreen labels: SPI SS GPIO10, MOSI GPIO11, SCK GPIO12,
@@ -24,14 +25,12 @@ silkscreen. Nothing here has been measured or exercised on the board.
 ## Configuration
 
 The overlay layers on the shared `sdkconfig.defaults`, which already selects
-Octal SPI PSRAM at 80 MHz, 80 MHz flash, and no RF-switch GPIO. It changes
-only three things:
+Octal SPI PSRAM at 80 MHz, 80 MHz flash, no RF-switch GPIO, and the status
+RGB LED on GPIO48 (`CONFIG_DB_STATUS_RGB_GPIO=48`, no power GPIO). It changes
+only two things:
 
 - `CONFIG_ESPTOOLPY_FLASHSIZE_16MB`
 - `CONFIG_DB_TARGET_NAME="esp32s3-n16r8"`
-- `CONFIG_DB_BOARD_RESERVED_GPIO=48`, so fixture wiring cannot claim the
-  onboard RGB LED pin. DragonBench never drives GPIO48. Other board profiles
-  do not reserve it.
 
 ```text
 idf.py -D SDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.n16r8" set-target esp32s3
@@ -61,17 +60,44 @@ assignments, product requirements, or fan safety thresholds. Hosted CI compiles
 the `fan-characterization` profile for this board with this wiring. PPR stays
 `0` (unknown).
 
-On this board the fixture pin guards reject GPIO48 (onboard RGB LED) and the
+On this board the fixture pin guards reject GPIO48 (status RGB LED) and the
 Octal PSRAM pins GPIO33–37, along with the pins every board rejects: strapping
 pins, native USB, the UART console, flash, nonexistent pins, and a gate that is
 also the tach.
+
+## Status RGB LED
+
+Confirmed by visual inspection: an onboard RGB LED with its data on GPIO48
+(silkscreen `RGB@IO48`). No power or enable GPIO is known, and none is
+configured.
+
+Not confirmed from a primary source (Lonely Binary's documentation could not
+be fetched from this environment): the LED part. Secondary summaries of
+Lonely Binary's guide describe it as a WS2812 on GPIO48 and mention a pad
+marked `RGB` that must be bridged. DragonBench drives it as a WS2812, the same
+as the N8R8. If the LED is not WS2812-compatible, or the pad is open, the
+status light stays dark; it cannot affect other pins.
+
+DragonBench owns this LED as its status light, so experiment fixture wiring
+may not use its pins: the fan-characterization build fails if the gate or
+tach is set to one. The firmware drives it through the RMT peripheral (not
+LEDC or PCNT), one frame per change, with no task or timer. It is off from
+boot until the `ready` event, then solid dim green (green channel 16 of 255)
+while the device is ready and idle. Starting a run turns it off before the
+run's `phase_start` event, and it stays off until that run has ended. It
+turns green again only after a run passes; after a failed or aborted run, or
+a passed `CONTROLLED_REBOOT`, it stays off until a later run passes.
+
+Off means dark, not unpowered: without a power GPIO the LED's idle current
+remains part of the board's baseline load.
 
 ## Validation status
 
 - ESP-IDF 5.3.5 builds: `baseline`, and `fan-characterization` with the
   wiring above. Build-validated only.
 - Physical flash and boot: pending.
-- Not validated: PSRAM detection and memory test at boot, reset and
-  auto-download behavior through either USB-C connector, which USB-C connector
-  reaches the USB-UART bridge and which reaches native USB, Wi-Fi, mDNS,
-  workload execution, fan characterization, and electrical characterization.
+- Not validated: the status RGB LED, PSRAM detection and memory test at boot,
+  reset and auto-download behavior through either USB-C connector, which USB-C
+  connector reaches the USB-UART bridge and which reaches native USB, Wi-Fi,
+  mDNS, workload execution, fan characterization, and electrical
+  characterization.

@@ -21,11 +21,14 @@ KCONFIG = ROOT / "firmware/targets/esp32s3/main/Kconfig.projbuild"
 FIXTURE_C = ROOT / "firmware/targets/esp32s3/main/fan_characterization.c"
 
 EXPECTED = {
-    # board: (CONFIG_DB_TARGET_NAME, flash size, PSRAM mode, RF-switch GPIO, board-reserved GPIO)
-    "n8r8": ("esp32s3-n8r8", "8MB", "OCT", -1, -1),
-    "n16r8": ("esp32s3-n16r8", "16MB", "OCT", -1, 48),
-    "tinys3d": ("esp32s3-tinys3d", "8MB", "QUAD", 38, -1),
+    # board: (CONFIG_DB_TARGET_NAME, flash size, PSRAM mode, RF-switch GPIO,
+    #         status RGB data GPIO, status RGB power GPIO)
+    "n8r8": ("esp32s3-n8r8", "8MB", "OCT", -1, 48, -1),
+    "n16r8": ("esp32s3-n16r8", "16MB", "OCT", -1, 48, -1),
+    "tinys3d": ("esp32s3-tinys3d", "8MB", "QUAD", 38, 18, 17),
 }
+GPIO_SETTINGS = ("DB_RF_SWITCH_GPIO", "DB_STATUS_RGB_GPIO", "DB_STATUS_RGB_POWER_GPIO",
+                 "DB_STATUS_RGB_POWER_ACTIVE_LEVEL")
 
 
 def _kconfig_int_default(name):
@@ -43,7 +46,7 @@ def resolved(board):
             elif line.startswith("CONFIG_"):
                 key, value = line.split("=", 1)
                 settings[key] = value
-    for name in ("DB_RF_SWITCH_GPIO", "DB_BOARD_RESERVED_GPIO"):
+    for name in GPIO_SETTINGS:
         settings.setdefault(f"CONFIG_{name}", str(_kconfig_int_default(name)))
     return settings
 
@@ -58,7 +61,7 @@ class BoardProfileTests(unittest.TestCase):
         self.assertEqual(sorted(profiles.board_profiles()), sorted(EXPECTED))
 
     def test_board_configuration(self):
-        for board, (target, flash, psram, rf_switch, reserved) in EXPECTED.items():
+        for board, (target, flash, psram, rf_switch, rgb, rgb_power) in EXPECTED.items():
             with self.subTest(board=board):
                 settings = resolved(board)
                 self.assertEqual(settings.get("CONFIG_DB_TARGET_NAME", '"esp32s3-n8r8"'), f'"{target}"')
@@ -67,7 +70,10 @@ class BoardProfileTests(unittest.TestCase):
                 self.assertEqual(settings.get("CONFIG_SPIRAM"), "y")
                 self.assertEqual(_selected(settings, "CONFIG_SPIRAM_MODE_", ("QUAD", "OCT")), psram)
                 self.assertEqual(int(settings["CONFIG_DB_RF_SWITCH_GPIO"]), rf_switch)
-                self.assertEqual(int(settings["CONFIG_DB_BOARD_RESERVED_GPIO"]), reserved)
+                self.assertEqual(int(settings["CONFIG_DB_STATUS_RGB_GPIO"]), rgb)
+                self.assertEqual(int(settings["CONFIG_DB_STATUS_RGB_POWER_GPIO"]), rgb_power)
+                # TinyS3[D] schematic Rev D-P1: GPIO17 high powers the LED.
+                self.assertEqual(int(settings["CONFIG_DB_STATUS_RGB_POWER_ACTIVE_LEVEL"]), 1)
 
     def test_n16r8_is_octal_psram_at_80_mhz(self):
         settings = resolved("n16r8")
@@ -125,9 +131,8 @@ class FixturePinGuardTests(unittest.TestCase):
     def _errors(self, board, gate, tach, sink=1):
         settings = resolved(board)
         defines = [f"-DCONFIG_DB_FAN_PWM_GATE_GPIO={gate}", f"-DCONFIG_DB_FAN_TACH_GPIO={tach}",
-                   f"-DCONFIG_DB_FAN_GATE_SINK_LEVEL={sink}",
-                   f"-DCONFIG_DB_RF_SWITCH_GPIO={settings['CONFIG_DB_RF_SWITCH_GPIO']}",
-                   f"-DCONFIG_DB_BOARD_RESERVED_GPIO={settings['CONFIG_DB_BOARD_RESERVED_GPIO']}"]
+                   f"-DCONFIG_DB_FAN_GATE_SINK_LEVEL={sink}"]
+        defines += [f"-DCONFIG_{name}={settings[f'CONFIG_{name}']}" for name in GPIO_SETTINGS]
         if settings.get("CONFIG_SPIRAM_MODE_OCT") == "y":
             defines.append("-DCONFIG_SPIRAM_MODE_OCT=1")
         result = subprocess.run(["cc", "-E", "-o", os.devnull, *defines,
@@ -149,13 +154,22 @@ class FixturePinGuardTests(unittest.TestCase):
         self.assertAccepted("n8r8", 6, 7, sink=0)
         self.assertAccepted("tinys3d", 4, 5, sink=1)
 
-    def test_n16r8_rejects_the_onboard_rgb_led_gpio(self):
-        self.assertRejected("n16r8", 48, 7, "CONFIG_DB_BOARD_RESERVED_GPIO")
-        self.assertRejected("n16r8", 6, 48, "CONFIG_DB_BOARD_RESERVED_GPIO")
+    def test_status_rgb_data_pin_is_rejected_as_gate_and_tach(self):
+        for board in ("n8r8", "n16r8"):
+            self.assertRejected(board, 48, 7, "CONFIG_DB_STATUS_RGB_GPIO")
+            self.assertRejected(board, 6, 48, "CONFIG_DB_STATUS_RGB_GPIO")
+        self.assertRejected("tinys3d", 18, 5, "CONFIG_DB_STATUS_RGB_GPIO")
+        self.assertRejected("tinys3d", 4, 18, "CONFIG_DB_STATUS_RGB_GPIO")
 
-    def test_gpio48_is_reserved_only_on_the_board_that_wires_it(self):
-        self.assertAccepted("n8r8", 48, 7)
+    def test_status_rgb_power_pin_is_rejected_as_gate_and_tach(self):
+        self.assertRejected("tinys3d", 17, 5, "CONFIG_DB_STATUS_RGB_POWER_GPIO")
+        self.assertRejected("tinys3d", 4, 17, "CONFIG_DB_STATUS_RGB_POWER_GPIO")
+
+    def test_status_rgb_pins_are_reserved_only_on_the_board_that_wires_them(self):
         self.assertAccepted("tinys3d", 48, 5)
+        for board in ("n8r8", "n16r8"):
+            self.assertAccepted(board, 17, 18)
+            self.assertAccepted(board, 18, 17)
 
     def test_tinys3d_still_rejects_its_rf_switch(self):
         self.assertRejected("tinys3d", 38, 5, "CONFIG_DB_RF_SWITCH_GPIO")

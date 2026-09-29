@@ -41,8 +41,12 @@
 #if CONFIG_DB_FAN_PWM_GATE_GPIO == CONFIG_DB_RF_SWITCH_GPIO || CONFIG_DB_FAN_TACH_GPIO == CONFIG_DB_RF_SWITCH_GPIO
 #error "fan-characterization: GPIO collides with CONFIG_DB_RF_SWITCH_GPIO"
 #endif
-#if CONFIG_DB_FAN_PWM_GATE_GPIO == CONFIG_DB_BOARD_RESERVED_GPIO || CONFIG_DB_FAN_TACH_GPIO == CONFIG_DB_BOARD_RESERVED_GPIO
-#error "fan-characterization: GPIO collides with CONFIG_DB_BOARD_RESERVED_GPIO, which this board wires to an onboard peripheral"
+// The board's status RGB LED pins belong to DragonBench's status light.
+#if CONFIG_DB_FAN_PWM_GATE_GPIO == CONFIG_DB_STATUS_RGB_GPIO || CONFIG_DB_FAN_TACH_GPIO == CONFIG_DB_STATUS_RGB_GPIO
+#error "fan-characterization: GPIO collides with CONFIG_DB_STATUS_RGB_GPIO, the board's status RGB LED data pin"
+#endif
+#if CONFIG_DB_FAN_PWM_GATE_GPIO == CONFIG_DB_STATUS_RGB_POWER_GPIO || CONFIG_DB_FAN_TACH_GPIO == CONFIG_DB_STATUS_RGB_POWER_GPIO
+#error "fan-characterization: GPIO collides with CONFIG_DB_STATUS_RGB_POWER_GPIO, the board's status RGB LED power pin"
 #endif
 // RPM is derived only from a PPR that names the evidence that established it.
 _Static_assert(CONFIG_DB_FAN_TACH_PPR == 0 || sizeof(CONFIG_DB_FAN_TACH_PPR_EVIDENCE) > 1,

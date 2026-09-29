@@ -13,6 +13,7 @@
 #include "db_network.h"
 #include "db_run.h"
 #include "fan_characterization.h"
+#include "status_rgb.h"
 #include "driver/gpio.h"
 #include "driver/temperature_sensor.h"
 #include "esp_attr.h"
@@ -63,6 +64,9 @@ static char sta_ssid[33];
 static char ap_ip[16];
 static char sta_ip[16];
 static bool mdns_ready;
+// Guarded by state_lock, like current_run.
+static bool device_ready;
+static bool status_green;
 static char mdns_hostname[MDNS_NAME_BUF_LEN];
 static EventGroupHandle_t network_events;
 #define AP_STARTED_BIT BIT0
@@ -289,6 +293,17 @@ static void format_parameters(const db_run_request_t *request, char *out, size_t
              request->duration_ms, request->rate_bps, request->host, request->port);
 }
 
+// Caller holds state_lock. The status light follows device and run state
+// only: green when ready and idle after a pass (db_status_ready), otherwise
+// off. Called on every run state change, under the same lock, so the light is
+// off before a run's phase_start and cannot turn green once another run began.
+static void status_sync_locked(void) {
+    const bool green = db_status_ready(device_ready, &current_run);
+    if (green == status_green) return;
+    status_rgb_set(green);
+    status_green = green;
+}
+
 static void workload_task(void *unused) {
     (void)unused;
     db_run_t run;
@@ -350,6 +365,7 @@ static void workload_task(void *unused) {
     emit_event("phase_end", phase, run.run_id, result, parameters, metrics);
     xSemaphoreTake(state_lock, portMAX_DELAY);
     db_run_finish(&current_run, result, uptime_ms());
+    status_sync_locked();
     xSemaphoreGive(state_lock);
     emit_event("run_complete", phase, run.run_id, result, parameters, metrics);
     if (run.request.workload == DB_CONTROLLED_REBOOT && ok && !should_abort()) {
@@ -585,9 +601,10 @@ static esp_err_t runs_post(httpd_req_t *req) {
     char id[DB_RUN_ID_LEN];
     snprintf(id, sizeof(id), "%08" PRIx32 "-%08" PRIx32, boot_nonce, ++run_counter);
     db_run_begin(&current_run, &request, id, uptime_ms());
+    status_sync_locked(); // off before the workload task can emit phase_start
     xSemaphoreGive(state_lock);
     if (xTaskCreate(workload_task, "db_workload", 8192, NULL, 5, NULL) != pdPASS) {
-        xSemaphoreTake(state_lock, portMAX_DELAY); db_run_finish(&current_run, "fail", uptime_ms()); xSemaphoreGive(state_lock);
+        xSemaphoreTake(state_lock, portMAX_DELAY); db_run_finish(&current_run, "fail", uptime_ms()); status_sync_locked(); xSemaphoreGive(state_lock);
         cJSON *o = cJSON_CreateObject(); cJSON_AddStringToObject(o, "error", "task creation failed"); return send_json(req, o, 409);
     }
     cJSON *o = cJSON_CreateObject(); cJSON_AddStringToObject(o, "run_id", id); cJSON_AddStringToObject(o, "state", "running");
@@ -1273,6 +1290,7 @@ void app_main(void) {
 #if DB_EXPERIMENT_FAN_CHARACTERIZATION
     fan_characterization_boot(); // release the stimulus line before anything else
 #endif
+    status_rgb_init(); // off until the device is ready
     ESP_ERROR_CHECK(nvs_flash_init());
     state_lock = xSemaphoreCreateMutex();
     boot_nonce = esp_random();
@@ -1325,4 +1343,8 @@ void app_main(void) {
     else ESP_LOGW(TAG, "mDNS unavailable (%s); use AP IP", esp_err_to_name(mdns_result));
     start_http();
     emit_event("ready", NULL, prior_run, NULL, NULL, NULL);
+    xSemaphoreTake(state_lock, portMAX_DELAY);
+    device_ready = true;
+    status_sync_locked();
+    xSemaphoreGive(state_lock);
 }

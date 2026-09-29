@@ -72,5 +72,31 @@ int main(void) {
     assert(run.state == DB_RUN_COMPLETE);
     assert(strcmp(run.result, "aborted") == 0);
     assert(run.started_ms == 10 && run.ended_ms == 20);
+
+    // Status light: green only when ready and idle after a pass; off otherwise.
+    db_run_t status = {.state = DB_RUN_IDLE};
+    assert(!db_status_ready(false, &status)); // boot / early init
+    assert(db_status_ready(true, &status));   // ready, no run yet
+    assert(!db_status_ready(true, NULL));
+    for (int w = 0; w < DB_WORKLOAD_COUNT; ++w) {
+        const db_run_request_t each = {.workload = (db_workload_t)w, .duration_ms = 1000};
+        db_run_begin(&status, &each, "boot0001-00000002", 30);
+        assert(!db_status_ready(true, &status)); // off for the whole run, every workload
+        assert(db_run_abort(&status, "boot0001-00000002"));
+        assert(!db_status_ready(true, &status)); // aborting is still measurement
+        db_run_finish(&status, "aborted", 40);
+        assert(!db_status_ready(true, &status));
+        db_run_begin(&status, &each, "boot0001-00000003", 50);
+        db_run_finish(&status, "fail", 60);
+        assert(!db_status_ready(true, &status));
+        db_run_begin(&status, &each, "boot0001-00000004", 70);
+        assert(!db_status_ready(true, &status));
+        db_run_finish(&status, "pass", 80);
+        // A passed CONTROLLED_REBOOT restarts next; it never shows ready.
+        assert(db_status_ready(true, &status) == (each.workload != DB_CONTROLLED_REBOOT));
+        assert(!db_status_ready(false, &status));
+    }
+    db_run_finish(&status, NULL, 90);
+    assert(!db_status_ready(true, &status));
     return 0;
 }

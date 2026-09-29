@@ -17,17 +17,18 @@ case "$board" in
     n8r8)
         defaults="sdkconfig.defaults"
         expect=("CONFIG_SPIRAM_MODE_OCT 1" "CONFIG_ESPTOOLPY_FLASHSIZE_8MB 1" 'CONFIG_DB_TARGET_NAME "esp32s3-n8r8"'
-                "CONFIG_DB_RF_SWITCH_GPIO -1" "CONFIG_DB_BOARD_RESERVED_GPIO -1")
+                "CONFIG_DB_RF_SWITCH_GPIO -1" "CONFIG_DB_STATUS_RGB_GPIO 48" "CONFIG_DB_STATUS_RGB_POWER_GPIO -1")
         ;;
     n16r8)
         defaults="sdkconfig.defaults;sdkconfig.defaults.n16r8"
         expect=("CONFIG_SPIRAM_MODE_OCT 1" "CONFIG_ESPTOOLPY_FLASHSIZE_16MB 1" 'CONFIG_DB_TARGET_NAME "esp32s3-n16r8"'
-                "CONFIG_DB_RF_SWITCH_GPIO -1" "CONFIG_DB_BOARD_RESERVED_GPIO 48")
+                "CONFIG_DB_RF_SWITCH_GPIO -1" "CONFIG_DB_STATUS_RGB_GPIO 48" "CONFIG_DB_STATUS_RGB_POWER_GPIO -1")
         ;;
     tinys3d)
         defaults="sdkconfig.defaults;sdkconfig.defaults.tinys3d"
         expect=("CONFIG_SPIRAM_MODE_QUAD 1" "CONFIG_ESPTOOLPY_FLASHSIZE_8MB 1" 'CONFIG_DB_TARGET_NAME "esp32s3-tinys3d"'
-                "CONFIG_DB_RF_SWITCH_GPIO 38" "CONFIG_DB_BOARD_RESERVED_GPIO -1")
+                "CONFIG_DB_RF_SWITCH_GPIO 38" "CONFIG_DB_STATUS_RGB_GPIO 18" "CONFIG_DB_STATUS_RGB_POWER_GPIO 17"
+                "CONFIG_DB_STATUS_RGB_POWER_ACTIVE_LEVEL 1")
         ;;
     *)
         echo "unknown board profile: $board (expected n8r8, n16r8, or tinys3d)" >&2

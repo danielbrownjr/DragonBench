@@ -62,3 +62,7 @@ bool db_request_validate(const db_run_request_t *request, char *error, size_t er
 void db_run_begin(db_run_t *run, const db_run_request_t *request, const char *run_id, uint64_t now_ms);
 bool db_run_abort(db_run_t *run, const char *run_id);
 void db_run_finish(db_run_t *run, const char *result, uint64_t now_ms);
+// Whether the status light may show ready (green): the device has reached its
+// ready state, no run is in progress, and the last run, if any, passed and is
+// not a CONTROLLED_REBOOT about to restart. Anything else keeps it off.
+bool db_status_ready(bool device_ready, const db_run_t *run);
