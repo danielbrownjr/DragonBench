@@ -4,13 +4,19 @@
 > pending.** No image has been flashed to or booted on this board yet.
 
 Board facts below come from visual inspection of the physical board and its
-silkscreen. Nothing here has been measured or exercised on the board.
+silkscreen, and from Lonely Binary's interactive GPIO map for its ESP32-S3
+Gold Edition board (screenshot supplied by Dan, 2026-09-29). Nothing here has
+been measured or exercised on the board.
 
 - Module: ESP32-S3-WROOM-1, marked `MCN16R8`
 - Flash: 16 MB
 - PSRAM: 8 MB, Octal SPI
 - Carrier: Lonely Binary pluggable-terminal development board, with BOOT and
   RESET buttons, two USB-C connectors, and an external USB-UART bridge
+- USB-C connectors: labelled `UART` and `USB` on Lonely Binary's map (with
+  the antenna at the top, `UART` is on the left and `USB` on the right).
+  Presumably `UART` reaches the USB-UART bridge and `USB` the native USB on
+  GPIO19/20; not checked on the board
 - Onboard RGB LED: GPIO48 (silkscreen `RGB@IO48`); see
   [Status RGB LED](#status-rgb-led)
 - UART console: TX GPIO43, RX GPIO44
@@ -18,7 +24,12 @@ silkscreen. Nothing here has been measured or exercised on the board.
 - Convenience silkscreen labels: SPI SS GPIO10, MOSI GPIO11, SCK GPIO12,
   MISO GPIO13; I2C SDA GPIO8, SCL GPIO9. These are labels only, not evidence
   that the carrier wires anything to those pins.
-- GPIO6 and GPIO7 are exposed on the pluggable terminals
+- GPIO6 and GPIO7 are exposed on the pluggable terminals. Lonely Binary's
+  map shows both as plain GPIO.
+- Lonely Binary's map marks these as restricted: TX/RX (43/44), GPIO0, 19,
+  20, and 48; strapping pins 3, 45 and 46; and GPIO35–37 as unusable (Octal
+  PSRAM). GPIO33 and 34 are not broken out. DragonBench's fixture pin guards
+  already reject all of these on this board.
 - RF switch: none
 - Profile overlay: `sdkconfig.defaults.n16r8`, reported target `esp32s3-n16r8`
 
@@ -67,16 +78,18 @@ also the tach.
 
 ## Status RGB LED
 
-Confirmed by visual inspection: an onboard RGB LED with its data on GPIO48
-(silkscreen `RGB@IO48`). No power or enable GPIO is known, and none is
-configured.
+Confirmed by visual inspection and by Lonely Binary's GPIO map: an onboard
+RGB LED in a 5050-style package with its data on GPIO48 (silkscreen
+`RGB@IO48`), which the map marks as a restricted pin. The map shows a
+solder-pad pair labelled `RGB` directly beside the LED, and no power or enable
+GPIO; none is configured.
 
-Not confirmed from a primary source (Lonely Binary's documentation could not
-be fetched from this environment): the LED part. Secondary summaries of
-Lonely Binary's guide describe it as a WS2812 on GPIO48 and mention a pad
-marked `RGB` that must be bridged. DragonBench drives it as a WS2812, the same
-as the N8R8. If the LED is not WS2812-compatible, or the pad is open, the
-status light stays dark; it cannot affect other pins.
+Not confirmed from a primary source: the LED part (the map does not name it),
+and whether the `RGB` pad has to be bridged, or is bridged on Dan's boards.
+Secondary summaries of Lonely Binary's guide describe the LED as a WS2812 on
+GPIO48 and say the `RGB` pads must be bridged to use it. DragonBench drives it
+as a WS2812, the same as the N8R8. If the LED is not WS2812-compatible, or the
+pad is open, the status light stays dark; it cannot affect other pins.
 
 DragonBench owns this LED as its status light, so experiment fixture wiring
 may not use its pins: the fan-characterization build fails if the gate or
@@ -96,8 +109,8 @@ remains part of the board's baseline load.
 - ESP-IDF 5.3.5 builds: `baseline`, and `fan-characterization` with the
   wiring above. Build-validated only.
 - Physical flash and boot: pending.
-- Not validated: the status RGB LED, PSRAM detection and memory test at boot,
-  reset and auto-download behavior through either USB-C connector, which USB-C
-  connector reaches the USB-UART bridge and which reaches native USB, Wi-Fi,
-  mDNS, workload execution, fan characterization, and electrical
-  characterization.
+- Not validated: the status RGB LED and the state of its `RGB` pad, PSRAM
+  detection and memory test at boot, reset and auto-download behavior through
+  either USB-C connector, that the `UART` and `USB` connectors reach the
+  USB-UART bridge and native USB as labelled, Wi-Fi, mDNS, workload
+  execution, fan characterization, and electrical characterization.
