@@ -2,8 +2,10 @@
 
 > **Validation state: baseline image physically validated on one board
 > (2026-09-29).** Flash, boot, PSRAM, the status LED, both USB-C paths, the
-> access point, mDNS and the read-only API have been exercised. Fan
-> characterization and the GPIO6/7 fixture wiring have not. See
+> access point, mDNS and the read-only API have been exercised. The
+> `fan-characterization` image has been booted and its static gate levels
+> checked with nothing attached. The fixture, fan, tach and PWM waveform have
+> not been validated. See
 > [Validation status](#validation-status).
 
 Board facts below come from visual inspection of the physical board and its
@@ -118,7 +120,7 @@ remains part of the board's baseline load.
 ## Validation status
 
 - ESP-IDF 5.3.5 builds: `baseline`, and `fan-characterization` with the
-  wiring above. The `fan-characterization` image is build-validated only.
+  wiring above. Both have been flashed to and booted on the board (below).
 
 The `baseline` image from commit `153c6d1` (ESP-IDF 5.3.5, clean tree) was
 flashed to and exercised on one board on 2026-09-29. No fixture, fan, GPIO6/7
@@ -156,8 +158,32 @@ wiring or 24 V supply was connected. Observed on that board:
   `status`, `sensors`, `workloads`, `events`) answer, and the mDNS name
   resolves and serves the API from a client on the access point.
 
+The `fan-characterization` image from commit `b90e713`, with the wiring
+above, was then smoke-tested on the same board over the `UART` connector.
+Nothing was attached except a DMM on GPIO6; GPIO7 was left unconnected, and
+there was no fixture, stage, fan or 24 V supply. Observed:
+
+- Boot: clean, with the PSRAM memory test passing, reaching `ready`. The only
+  warning is the profile's designed `FAN-CHARACTERIZATION EXPERIMENT PROFILE`
+  banner, reporting the line released.
+- Identity: `/api/v1/device` reports experiment profile
+  `fan-characterization`, the fixture pins and sink level above, `tach_ppr`
+  `null`, and heater and fan-control capabilities `false`. `FAN_PWM_HOLD` is
+  listed as available.
+- GPIO6 on the DMM: 0 V at idle, after each run, and after a reset; 0 V
+  throughout a 0% `FAN_PWM_HOLD` (`static_release`); 3.26 V throughout a 100%
+  hold (`static_sink`). Readings were untimed, and the ~1 s boot window before
+  the firmware drives the pin was not resolved.
+- Runs: each hold at 0% or 100% (25 kHz setting) passed, with `phase_start`,
+  `phase_end` and `run_complete` in order and `ppr`/`rpm` `null`. The status
+  LED was off during each run and green again after it.
+- Floating GPIO7 counted between 0 and about 971,000 edges per run. This is
+  pickup on an unconnected input, not tach evidence.
+
 Still not validated: station mode (no credentials were present), host-driven
 reset over the `USB` connector, the USB-UART bridge part (only its USB IDs
-were seen), the LED part and supply and the state of its `RGB` pad, workload
-execution, the `fan-characterization` image, the GPIO6/7 fixture wiring, fan
-characterization, and electrical characterization.
+were seen), the LED part and supply and the state of its `RGB` pad, baseline
+workload execution, the PWM waveform between 0% and 100% (LEDC frequency, duty
+and transitions, pending a logic analyzer), the shutdown-release handler, the
+GPIO6/7 fixture wiring and any external stage, tach capture of a real signal,
+PPR, fan characterization, and electrical characterization.

@@ -136,13 +136,15 @@ characterization remain unvalidated there too. See
 On one N16R8 board, the baseline image's flash, boot, the 8 MB Octal PSRAM
 test, the status LED, flashing through both USB-C connectors, the direct access
 point, mDNS and the read-only API have been validated. Station mode, workload
-execution, the fan-characterization image and electrical characterization
-remain unvalidated there. See [N16R8 profile](docs/TARGET_N16R8.md).
+execution and electrical characterization remain unvalidated there. See
+[N16R8 profile](docs/TARGET_N16R8.md).
 
 The `fan-characterization` experiment profile builds with ESP-IDF 5.3.5 once
 its wiring is stated, and refuses to build without it. Its stimulus lifecycle
-and tach arithmetic pass host tests. Its fixture GPIOs are not yet defined, and
-no part of it has run on hardware.
+and tach arithmetic pass host tests. Its fixture wiring is provisional. On the
+N16R8, with that wiring and nothing attached, the image boots and holds the
+gate pin at the expected static levels for 0% and 100% sink duty. The fixture,
+fan, tach, PWM waveform and PPR remain unvalidated on hardware.
 
 ## Scope rule
 

@@ -10,8 +10,11 @@
 [experiment profiles](EXPERIMENT_PROFILES.md): an image built with it reports
 `"experiment_profile": "fan-characterization"`.
 
-Status: firmware, API, and host tooling are implemented and build-verified; no
-part of the fixture has run on hardware. The wiring is still to be defined, see
+Status: firmware, API, and host tooling are implemented and build-verified.
+The image has booted on an N16R8 with nothing attached to the gate or tach
+pins, and a DMM confirmed the static 0% and 100% gate levels there (see
+[TARGET_N16R8.md](TARGET_N16R8.md#validation-status)). No fixture has been
+built or connected. The wiring is still to be defined, see
 [Open items](#open-items).
 
 The first specimen is the JumpJet Sanyo Denki `9GA0424P3J001` candidate. Its
@@ -253,8 +256,10 @@ single hold.
   tach pulse on a clean, conditioned signal. A noisy line needs the glitch
   filter and a scope check. Stopped or locked-rotor tach behavior (plan §10) is
   reported only as raw edges.
-- Static gate drive, LEDC output, PCNT accumulation, pad readback, and the
-  shutdown handler have been compiled but never run on hardware.
+- Static gate drive has been checked on hardware with a DMM only, with no
+  stage attached. PCNT accumulation and pad readback have run only with the
+  tach pin unconnected. LEDC output and the shutdown handler have never run on
+  hardware.
 - Nothing here measures supply current, temperature, airflow, noise, or
   vibration (plan §11–13). Those stay with external instruments.
 
