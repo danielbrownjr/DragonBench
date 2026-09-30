@@ -7,8 +7,13 @@
 #include <unistd.h>
 
 #include "cJSON.h"
+#include "db_build_provenance.h"
+#include "db_experiment.h"
+#include "db_fan.h"
 #include "db_network.h"
 #include "db_run.h"
+#include "fan_characterization.h"
+#include "status_rgb.h"
 #include "driver/gpio.h"
 #include "driver/temperature_sensor.h"
 #include "esp_attr.h"
@@ -59,6 +64,9 @@ static char sta_ssid[33];
 static char ap_ip[16];
 static char sta_ip[16];
 static bool mdns_ready;
+// Guarded by state_lock, like current_run.
+static bool device_ready;
+static bool status_green;
 static char mdns_hostname[MDNS_NAME_BUF_LEN];
 static EventGroupHandle_t network_events;
 #define AP_STARTED_BIT BIT0
@@ -123,14 +131,24 @@ static void emit_event(const char *event, const char *phase, const char *run_id,
         if (metrics) cJSON_AddItemToObject(root, "metrics", metrics);
     }
     char *json = cJSON_PrintUnformatted(root);
+    ESP_LOGI(TAG, "%s", json ? json : "{}");
+    // Never store a cut-off (invalid) JSON line: an oversized event keeps its
+    // envelope, drops parameters/metrics, and says so. The log has it all.
+    char *stored = json;
+    if (json && strlen(json) >= DB_EVENT_JSON_LEN) {
+        cJSON_DeleteItemFromObject(root, "parameters");
+        cJSON_DeleteItemFromObject(root, "metrics");
+        cJSON_AddTrueToObject(root, "truncated");
+        stored = cJSON_PrintUnformatted(root);
+    }
     xSemaphoreTake(state_lock, portMAX_DELAY);
     db_event_t *slot = &events[event_head];
     slot->seq = event_seq;
-    snprintf(slot->json, sizeof(slot->json), "%s", json ? json : "{}");
+    snprintf(slot->json, sizeof(slot->json), "%s", stored ? stored : "{}");
     event_head = (event_head + 1U) % DB_EVENT_CAPACITY;
     if (event_count < DB_EVENT_CAPACITY) ++event_count;
     xSemaphoreGive(state_lock);
-    ESP_LOGI(TAG, "%s", json ? json : "{}");
+    if (stored != json) cJSON_free(stored);
     cJSON_free(json);
     cJSON_Delete(root);
 }
@@ -261,6 +279,31 @@ static bool run_network(const db_run_request_t *request, uint64_t *tx, uint64_t 
     return ok && !should_abort();
 }
 
+static void format_parameters(const db_run_request_t *request, char *out, size_t out_len) {
+    if (request->workload == DB_FAN_PWM_HOLD) {
+        db_fan_stimulus_t stimulus;
+        const bool planned = db_fan_stimulus_plan(request->pwm_hz, request->sink_duty_tenths_pct, &stimulus);
+        db_fan_format_parameters(out, out_len, request->pwm_hz, request->sink_duty_tenths_pct,
+                                 request->duration_ms, planned ? &stimulus : NULL);
+        return;
+    }
+    snprintf(out, out_len,
+             "{\"duration_ms\":%" PRIu32 ",\"rate_bps\":%" PRIu32
+             ",\"host\":\"%s\",\"port\":%u}",
+             request->duration_ms, request->rate_bps, request->host, request->port);
+}
+
+// Caller holds state_lock. The status light follows device and run state
+// only: green when ready and idle after a pass (db_status_ready), otherwise
+// off. Called on every run state change, under the same lock, so the light is
+// off before a run's phase_start and cannot turn green once another run began.
+static void status_sync_locked(void) {
+    const bool green = db_status_ready(device_ready, &current_run);
+    if (green == status_green) return;
+    status_rgb_set(green);
+    status_green = green;
+}
+
 static void workload_task(void *unused) {
     (void)unused;
     db_run_t run;
@@ -269,13 +312,12 @@ static void workload_task(void *unused) {
     xSemaphoreGive(state_lock);
     const char *phase = db_workload_name(run.request.workload);
     char parameters[384];
-    snprintf(parameters, sizeof(parameters),
-             "{\"duration_ms\":%" PRIu32 ",\"rate_bps\":%" PRIu32
-             ",\"host\":\"%s\",\"port\":%u}",
-             run.request.duration_ms, run.request.rate_bps, run.request.host, run.request.port);
+    format_parameters(&run.request, parameters, sizeof(parameters));
     emit_event("phase_start", phase, run.run_id, NULL, parameters, NULL);
     bool ok = true;
+    bool fixture_fault = false;
     uint64_t a = 0, b = 0;
+    char metrics[DB_FAN_METRICS_JSON_LEN] = "";
     switch (run.request.workload) {
         case DB_BOOT:
         case DB_IDLE:
@@ -302,15 +344,28 @@ static void workload_task(void *unused) {
         }
         case DB_CONTROLLED_REBOOT:
             ok = wait_abortable(run.request.duration_ms); break;
+#if DB_EXPERIMENT_FAN_CHARACTERIZATION
+        case DB_FAN_PWM_HOLD: {
+            db_fan_hold_result_t hold;
+            ok = fan_characterization_hold(&run.request, should_abort, &hold) == DB_FAN_HOLD_PASS;
+            // A fixture error (including a failed release) is a fault even during abort.
+            fixture_fault = hold.error != NULL;
+            if (!db_fan_format_metrics(metrics, sizeof(metrics), &hold, fan_characterization_ppr()))
+                snprintf(metrics, sizeof(metrics), "{\"metrics_overflow\":true,\"released\":%s}",
+                         hold.released ? "true" : "false");
+            break;
+        }
+#endif
         default: ok = false; break;
     }
     const char *result = should_abort() ? "aborted" : (ok ? "pass" : "fail");
-    char metrics[128];
-    snprintf(metrics, sizeof(metrics), "{\"operations_or_bytes\":%" PRIu64 ",\"bytes_rx\":%" PRIu64 "}", a, b);
-    if (!ok && !should_abort()) emit_event("fault", phase, run.run_id, "fail", parameters, metrics);
+    if (!metrics[0])
+        snprintf(metrics, sizeof(metrics), "{\"operations_or_bytes\":%" PRIu64 ",\"bytes_rx\":%" PRIu64 "}", a, b);
+    if ((!ok && !should_abort()) || fixture_fault) emit_event("fault", phase, run.run_id, "fail", parameters, metrics);
     emit_event("phase_end", phase, run.run_id, result, parameters, metrics);
     xSemaphoreTake(state_lock, portMAX_DELAY);
     db_run_finish(&current_run, result, uptime_ms());
+    status_sync_locked();
     xSemaphoreGive(state_lock);
     emit_event("run_complete", phase, run.run_id, result, parameters, metrics);
     if (run.request.workload == DB_CONTROLLED_REBOOT && ok && !should_abort()) {
@@ -332,16 +387,60 @@ static esp_err_t send_json(httpd_req_t *req, cJSON *root, int status) {
     return err;
 }
 
+// Where each quantity of interest comes from. "dut.<peripheral>" is measured
+// by this firmware, "derived.<rule>" is computed from DUT data, and "external"
+// is owned by bench instruments; DragonBench reports no value for it. Each
+// experiment profile adds only what it actually acquires or needs.
+static void add_measurement_provenance(cJSON *parent) {
+    cJSON *m = cJSON_AddObjectToObject(parent, "measurement_provenance");
+    cJSON_AddStringToObject(m, "soc_temperature", "dut.esp32s3_temperature_sensor");
+    cJSON_AddStringToObject(m, "wifi_rssi", "dut.esp32s3_wifi");
+    cJSON_AddStringToObject(m, "supply_voltage", "external");
+    cJSON_AddStringToObject(m, "supply_current", "external");
+    cJSON_AddStringToObject(m, "rail_voltage", "external");
+    cJSON_AddStringToObject(m, "reset_and_brownout", "external");
+#if DB_EXPERIMENT_FAN_CHARACTERIZATION
+    cJSON_AddStringToObject(m, "fan_tach_edges", "dut.esp32s3_pcnt");
+    cJSON_AddStringToObject(m, "fan_speed",
+                            fan_characterization_ppr() ? "derived.fan_tach_edges_and_configured_ppr" : "external");
+    cJSON_AddStringToObject(m, "fan_pwm_line_waveform", "external");
+    cJSON_AddStringToObject(m, "fan_supply_voltage", "external");
+    cJSON_AddStringToObject(m, "fan_supply_current", "external");
+    cJSON_AddStringToObject(m, "fan_airflow", "external");
+    cJSON_AddStringToObject(m, "fan_temperature", "external");
+#endif
+}
+
+// Revision this image was built from; empty SHA / "unknown" when the build
+// could not establish it (see build_provenance.cmake).
+static void add_build(cJSON *parent) {
+    cJSON *b = cJSON_AddObjectToObject(parent, "build");
+    cJSON_AddStringToObject(b, "firmware_version", CONFIG_DB_FIRMWARE_VERSION);
+    if (DB_BUILD_GIT_SHA[0]) cJSON_AddStringToObject(b, "git_sha", DB_BUILD_GIT_SHA);
+    else cJSON_AddNullToObject(b, "git_sha");
+    cJSON_AddStringToObject(b, "source_tree", DB_BUILD_SOURCE_TREE);
+    cJSON_AddStringToObject(b, "esp_idf", esp_get_idf_version());
+}
+
 static cJSON *identity_json(void) {
     cJSON *o = cJSON_CreateObject();
     cJSON_AddStringToObject(o, "product", "DragonBench");
     cJSON_AddStringToObject(o, "target", CONFIG_DB_TARGET_NAME);
+    cJSON_AddStringToObject(o, "board_profile", CONFIG_DB_TARGET_NAME);
+    cJSON_AddStringToObject(o, "experiment_profile", DB_EXPERIMENT_PROFILE_NAME);
     cJSON_AddStringToObject(o, "firmware_version", CONFIG_DB_FIRMWARE_VERSION);
+    add_build(o);
     cJSON_AddStringToObject(o, "device_id", device_id);
     cJSON_AddStringToObject(o, "image_class", "characterization");
+    // Product actuator capabilities are absent in every build, fixture included.
     cJSON_AddBoolToObject(o, "heater_capability", false);
     cJSON_AddBoolToObject(o, "fan_control_capability", false);
-    cJSON_AddStringToObject(o, "measurement_authority", "external_bench_equipment");
+    cJSON *bench = cJSON_AddObjectToObject(o, "bench_stimulus");
+    cJSON_AddBoolToObject(bench, "fan_pwm_fixture", DB_EXPERIMENT_FAN_CHARACTERIZATION);
+#if DB_EXPERIMENT_FAN_CHARACTERIZATION
+    fan_characterization_describe(bench);
+#endif
+    add_measurement_provenance(o);
     return o;
 }
 
@@ -403,6 +502,11 @@ static esp_err_t sensors_get(httpd_req_t *req) {
                sta_state == DB_STA_CONNECTED);
     add_sensor(a, "supply_voltage", "MCU supply voltage", "V", "none", "unsupported", 0, false);
     add_sensor(a, "supply_current", "MCU supply current", "A", "none", "unsupported", 0, false);
+#if DB_EXPERIMENT_FAN_CHARACTERIZATION
+    // Counted per FAN_PWM_HOLD window and reported in its phase_end metrics.
+    add_sensor(a, "fan_tach_edges", "Fan tach falling edges", "edges", "pcnt",
+               fan_characterization_tach_ready() ? "available" : "unavailable", 0, false);
+#endif
     return send_json(req, root, 200);
 }
 
@@ -412,6 +516,10 @@ static esp_err_t workloads_get(httpd_req_t *req) {
         cJSON *o = cJSON_CreateObject();
         cJSON_AddStringToObject(o, "id", db_workload_name((db_workload_t)i));
         cJSON_AddStringToObject(o, "status", db_workload_supported((db_workload_t)i) ? "available" : "unsupported");
+        if (i == DB_FAN_PWM_HOLD) {
+            cJSON_AddStringToObject(o, "class", "bench_stimulus");
+            if (!db_workload_supported(DB_FAN_PWM_HOLD)) cJSON_AddStringToObject(o, "reason", "requires fan-characterization experiment profile");
+        }
         cJSON_AddItemToArray(a, o);
     }
     static const char *const unsupported[] = {
@@ -446,6 +554,8 @@ static esp_err_t runs_post(httpd_req_t *req) {
     cJSON *duration = body ? cJSON_GetObjectItemCaseSensitive(body, "duration_ms") : NULL;
     db_run_request_t request = {.duration_ms = 30000};
     bool parsed = cJSON_IsString(w) && db_workload_parse(w->valuestring, &request.workload);
+    // A bench stimulus never runs for an implied duration.
+    if (request.workload == DB_FAN_PWM_HOLD && !cJSON_IsNumber(duration)) request.duration_ms = 0;
     if (cJSON_IsNumber(duration)) {
         if (duration->valuedouble < 1 || duration->valuedouble > 3600000 ||
             duration->valuedouble != (double)(uint32_t)duration->valuedouble) parsed = false;
@@ -465,8 +575,23 @@ static esp_err_t runs_post(httpd_req_t *req) {
             rate->valuedouble != (double)(uint32_t)rate->valuedouble) parsed = false;
         else request.rate_bps = (uint32_t)rate->valuedouble;
     }
+    cJSON *pwm_hz = body ? cJSON_GetObjectItemCaseSensitive(body, "pwm_hz") : NULL;
+    cJSON *sink_duty = body ? cJSON_GetObjectItemCaseSensitive(body, "sink_duty_pct") : NULL;
+    const char *field_error = NULL;
+    if (pwm_hz) {
+        request.pwm_hz_set = true;
+        if (!cJSON_IsNumber(pwm_hz) || pwm_hz->valuedouble < 0 || pwm_hz->valuedouble > UINT32_MAX ||
+            pwm_hz->valuedouble != (double)(uint32_t)pwm_hz->valuedouble) field_error = "pwm_hz must be an integer";
+        else request.pwm_hz = (uint32_t)pwm_hz->valuedouble;
+    }
+    if (sink_duty) {
+        request.sink_duty_set = true;
+        if (!cJSON_IsNumber(sink_duty) || !db_fan_sink_duty_from_pct(sink_duty->valuedouble, &request.sink_duty_tenths_pct))
+            field_error = "sink_duty_pct must be 0..100 in 0.1 steps";
+    }
     char validation[96] = "invalid workload";
-    bool valid = parsed && db_request_validate(&request, validation, sizeof(validation));
+    if (field_error) snprintf(validation, sizeof(validation), "%s", field_error);
+    bool valid = parsed && !field_error && db_request_validate(&request, validation, sizeof(validation));
     cJSON_Delete(body);
     if (!valid) { cJSON *o = cJSON_CreateObject(); cJSON_AddStringToObject(o, "error", validation); return send_json(req, o, 400); }
     xSemaphoreTake(state_lock, portMAX_DELAY);
@@ -476,9 +601,10 @@ static esp_err_t runs_post(httpd_req_t *req) {
     char id[DB_RUN_ID_LEN];
     snprintf(id, sizeof(id), "%08" PRIx32 "-%08" PRIx32, boot_nonce, ++run_counter);
     db_run_begin(&current_run, &request, id, uptime_ms());
+    status_sync_locked(); // off before the workload task can emit phase_start
     xSemaphoreGive(state_lock);
     if (xTaskCreate(workload_task, "db_workload", 8192, NULL, 5, NULL) != pdPASS) {
-        xSemaphoreTake(state_lock, portMAX_DELAY); db_run_finish(&current_run, "fail", uptime_ms()); xSemaphoreGive(state_lock);
+        xSemaphoreTake(state_lock, portMAX_DELAY); db_run_finish(&current_run, "fail", uptime_ms()); status_sync_locked(); xSemaphoreGive(state_lock);
         cJSON *o = cJSON_CreateObject(); cJSON_AddStringToObject(o, "error", "task creation failed"); return send_json(req, o, 409);
     }
     cJSON *o = cJSON_CreateObject(); cJSON_AddStringToObject(o, "run_id", id); cJSON_AddStringToObject(o, "state", "running");
@@ -538,7 +664,7 @@ static void snapshot_events_locked(event_snapshot_t *snapshot) {
 }
 
 static esp_err_t events_get(httpd_req_t *req) {
-    // Bounded: DB_EVENT_CAPACITY * DB_EVENT_JSON_LEN (~32 KiB), too large for
+    // Bounded: DB_EVENT_CAPACITY * DB_EVENT_JSON_LEN (40 KiB), too large for
     // the httpd task stack; released before returning on every path.
     event_snapshot_t *snapshot = malloc(sizeof(*snapshot));
     if (!snapshot) {
@@ -648,7 +774,7 @@ static const char landing[] =
 "</header>"
 "<section class=\"banner\" data-role=\"actuator-boundary\" aria-labelledby=\"actuator-boundary-heading\">"
 "  <h2 id=\"actuator-boundary-heading\">DragonBench characterization image</h2>"
-"  <p><strong>No product actuator support.</strong> This image cannot drive a heater or fan. All voltage, current, and rail evidence remains owned by external bench equipment.</p>"
+"  <p><strong>No product actuator support.</strong> This image has no heater or product fan-control path. The fan-characterization experiment profile can only drive an external open-drain PWM stimulus stage for characterization, with no closed loop or thresholds. All voltage, current, and rail evidence remains owned by external bench equipment.</p>"
 "</section>"
 "<section class=\"capabilities\" aria-label=\"Actuator capability boundary\">"
 "  <div class=\"capability\">"
@@ -658,6 +784,10 @@ static const char landing[] =
 "  <div class=\"capability\">"
 "    <span>Fan-control capability</span>"
 "    <strong data-role=\"capability-fan\" data-status=\"unsupported\">ABSENT</strong>"
+"  </div>"
+"  <div class=\"capability\">"
+"    <span>Bench fan-PWM stimulus</span>"
+"    <strong data-role=\"capability-fan-stimulus\" data-status=\"unsupported\">ABSENT</strong>"
 "  </div>"
 "</section>"
 "<noscript><p style=\"width:min(1100px,100%);margin:0 auto 16px\">JavaScript is required to populate live values. The DragonBench API remains directly reachable at /api/v1/status, /api/v1/sensors, and /api/v1/workloads.</p></noscript>"
@@ -723,11 +853,14 @@ static const char landing[] =
 "    var net=data.network_connected;"
 "    grid.appendChild(metricTile('Network',net===true?'connected':net===false?'disconnected':undefined,net===true?'connected':net===false?'disconnected':undefined));"
 "    grid.appendChild(metricTile('Run ID',data.run_id));"
-"    grid.appendChild(metricTile('Measurement authority',data.measurement_authority));"
+"    grid.appendChild(metricTile('Experiment profile',data.experiment_profile));"
 "    var heater=role('capability-heater'),fan=role('capability-fan');"
 "    if(typeof data.heater_capability==='boolean'){heater.textContent=data.heater_capability?'PRESENT':'ABSENT';heater.dataset.status=data.heater_capability?'error':'unsupported'}"
 "    if(typeof data.fan_control_capability==='boolean'){fan.textContent=data.fan_control_capability?'PRESENT':'ABSENT';fan.dataset.status=data.fan_control_capability?'error':'unsupported'}"
-"    role('identity').textContent=(data.target||'target —')+' · firmware '+(data.firmware_version||'—');"
+"    var stimulus=role('capability-fan-stimulus'),bench=data.bench_stimulus;"
+"    if(bench&&typeof bench.fan_pwm_fixture==='boolean'){stimulus.textContent=bench.fan_pwm_fixture?'BENCH FIXTURE':'ABSENT';stimulus.dataset.status=bench.fan_pwm_fixture?'running':'unsupported'}"
+"    var build=data.build||{},sha=typeof build.git_sha==='string'?build.git_sha.slice(0,12):'unknown';"
+"    role('identity').textContent=(data.board_profile||data.target||'target —')+' · '+(data.experiment_profile||'profile —')+' · firmware '+(data.firmware_version||'—')+' · '+sha+(build.source_tree==='dirty'?' (dirty)':'');"
 "  }"
 "  function renderSensors(data){"
 "    var list=role('sensor-fields');clear(list);"
@@ -1154,6 +1287,10 @@ static void antenna_init(void) {
 }
 
 void app_main(void) {
+#if DB_EXPERIMENT_FAN_CHARACTERIZATION
+    fan_characterization_boot(); // release the stimulus line before anything else
+#endif
+    status_rgb_init(); // off until the device is ready
     ESP_ERROR_CHECK(nvs_flash_init());
     state_lock = xSemaphoreCreateMutex();
     boot_nonce = esp_random();
@@ -1170,7 +1307,13 @@ void app_main(void) {
     char reset_metrics[64];
     snprintf(reset_metrics, sizeof(reset_metrics), "{\"reason\":\"%s\"}", reset_reason_text);
     const char *prior_run = previous_reboot_run_id[0] ? previous_reboot_run_id : NULL;
-    emit_event("boot", NULL, prior_run, NULL, NULL, NULL);
+    // Image identity in the first event, so a serial log alone names what ran.
+    char image[192];
+    snprintf(image, sizeof(image),
+             "{\"board_profile\":\"%s\",\"experiment_profile\":\"%s\",\"git_sha\":%s%s%s,\"source_tree\":\"%s\"}",
+             CONFIG_DB_TARGET_NAME, DB_EXPERIMENT_PROFILE_NAME, DB_BUILD_GIT_SHA[0] ? "\"" : "",
+             DB_BUILD_GIT_SHA[0] ? DB_BUILD_GIT_SHA : "null", DB_BUILD_GIT_SHA[0] ? "\"" : "", DB_BUILD_SOURCE_TREE);
+    emit_event("boot", NULL, prior_run, NULL, image, NULL);
     emit_event("reset_reason", NULL, prior_run, NULL, NULL, reset_metrics);
     antenna_init();
     if (!start_wifi()) {
@@ -1200,4 +1343,8 @@ void app_main(void) {
     else ESP_LOGW(TAG, "mDNS unavailable (%s); use AP IP", esp_err_to_name(mdns_result));
     start_http();
     emit_event("ready", NULL, prior_run, NULL, NULL, NULL);
+    xSemaphoreTake(state_lock, portMAX_DELAY);
+    device_ready = true;
+    status_sync_locked();
+    xSemaphoreGive(state_lock);
 }

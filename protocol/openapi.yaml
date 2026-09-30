@@ -4,16 +4,118 @@ info:
   version: 0.1.0
 paths:
   /api/v1/device:
-    get: {summary: Device identity and immutable product boundary}
+    get:
+      summary: Device identity, image provenance, and immutable product boundary
+      description: >-
+        An image is one board profile plus one experiment profile.
+        board_profile (same value as target) and experiment_profile name them;
+        build.git_sha and build.source_tree record the source revision when
+        the build could establish it (git_sha null and source_tree "unknown"
+        otherwise; "dirty" means tracked changes or untracked, non-ignored
+        files). measurement_provenance maps each quantity of interest to its
+        source: "dut.<peripheral>" is measured by this firmware,
+        "derived.<rule>" is computed from DUT data, and "external" is owned by
+        bench instruments and never reported by DragonBench. Experiment
+        profiles add only the quantities they acquire or depend on.
+        heater_capability and fan_control_capability are false in every
+        build: DragonBench never implements product heater or fan control,
+        closed loops, thresholds, or safety policy.
+        bench_stimulus.fan_pwm_fixture is true only in the
+        fan-characterization experiment profile, which can drive an external
+        open-drain stage that sinks a fan PWM line; bench_stimulus.fan_fixture
+        then reports its configured wiring and live line_state.
+      responses:
+        "200":
+          description: Identity
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [board_profile, experiment_profile, firmware_version, build, device_id, measurement_provenance]
+                properties:
+                  target: {type: string}
+                  board_profile: {type: string, enum: [esp32s3-n8r8, esp32s3-n16r8, esp32s3-tinys3d]}
+                  experiment_profile: {type: string, enum: [baseline, fan-characterization]}
+                  firmware_version: {type: string}
+                  build:
+                    type: object
+                    required: [firmware_version, git_sha, source_tree, esp_idf]
+                    properties:
+                      firmware_version: {type: string}
+                      git_sha: {type: string, nullable: true, pattern: "^[0-9a-f]+$"}
+                      source_tree: {type: string, enum: [clean, dirty, unknown]}
+                      esp_idf: {type: string}
+                  device_id: {type: string}
+                  measurement_provenance:
+                    type: object
+                    additionalProperties: {type: string, pattern: "^(external|dut\\.[a-z0-9_]+|derived\\.[a-z0-9_]+)$"}
+                    example:
+                      soc_temperature: dut.esp32s3_temperature_sensor
+                      supply_current: external
+                      fan_tach_edges: dut.esp32s3_pcnt
+                      fan_speed: external
+                  heater_capability: {type: boolean, enum: [false]}
+                  fan_control_capability: {type: boolean, enum: [false]}
+                  bench_stimulus:
+                    type: object
+                    required: [fan_pwm_fixture]
+                    properties:
+                      fan_pwm_fixture: {type: boolean}
+                      fan_fixture:
+                        type: object
+                        description: Present only in the fan-characterization experiment profile
+                        properties:
+                          stimulus: {type: string, enum: [pwm_sink_via_external_open_drain_stage]}
+                          fan_response: {type: string, enum: [uncharacterized]}
+                          line_state: {type: string, enum: [unconfigured, released, static_sink, pwm, release_failed, drive_failed]}
+                          pwm_gate_gpio: {type: integer}
+                          gate_sink_level: {type: integer, enum: [0, 1]}
+                          tach_gpio: {type: integer}
+                          tach_edge: {type: string, enum: [falling]}
+                          tach_ready: {type: boolean}
+                          tach_ppr: {type: integer, nullable: true}
   /api/v1/status:
     get: {summary: Current run, network, uptime, and reset state}
   /api/v1/sensors:
-    get: {summary: Truthful DUT signal registry}
+    get:
+      summary: Truthful DUT signal registry
+      description: >-
+        The fan-characterization profile adds fan_tach_edges (source pcnt,
+        no instantaneous value: edges are counted per FAN_PWM_HOLD window).
   /api/v1/workloads:
-    get: {summary: Supported and unsupported workload registry}
+    get:
+      summary: Supported and unsupported workload registry
+      description: >-
+        FAN_PWM_HOLD is listed with class bench_stimulus. It is "available"
+        only in the fan-characterization experiment profile and
+        "unsupported" (reason "requires fan-characterization experiment
+        profile") otherwise.
   /api/v1/runs:
     post:
       summary: Start one validated workload
+      description: >-
+        FAN_PWM_HOLD (fan-characterization experiment profile only) makes the
+        external stage sink the fan PWM line for sink_duty_pct of the time,
+        for duration_ms, while PCNT counts tach falling edges. 0 % holds the
+        gate at its release level and 100 % holds it at its sink level, both
+        statically; only values strictly between use PWM at pwm_hz. pwm_hz is
+        required and validated for every request so a sweep is uniform, but no
+        PWM is generated at the static endpoints. pwm_hz or sink_duty_pct on
+        any other workload is rejected. The run is refused before any
+        actuation if the line cannot be released or tach capture is not
+        ready. The line is released at boot, at run end, on abort, and on
+        every error. No sink duty, including 0 and 100, and the released
+        state are asserted to mean stopped or full speed.
+        phase_start/phase_end parameters carry pwm_hz, sink_duty_pct,
+        duration_ms, stimulus (static_release, pwm, static_sink),
+        applied_sink_duty_pct, and, for pwm, duty_resolution_bits; phase_end
+        metrics carry tach_edges, window_start_us, window_us, edge_hz, ppr,
+        rpm, and released_us (esp_timer microseconds since boot). ppr and rpm
+        are null unless a PPR was configured with evidence. fixture_error is
+        one of invalid_parameters, pre_release_failed, tach_unavailable,
+        actuation_failed, tach_clear_failed, tach_read_failed, or
+        release_failed; a failed release is also "released": false with a
+        fault event.
       requestBody:
         required: true
         content:
@@ -27,6 +129,8 @@ paths:
                 host: {type: string, maxLength: 253}
                 port: {type: integer, minimum: 1, maximum: 65535}
                 rate_bps: {type: integer, minimum: 0}
+                pwm_hz: {type: integer, minimum: 10, maximum: 50000, description: "FAN_PWM_HOLD only. Fixture generator range, not a fan specification"}
+                sink_duty_pct: {type: number, minimum: 0, maximum: 100, multipleOf: 0.1, description: "FAN_PWM_HOLD only. Percent of each period the external stage sinks the fan PWM line"}
   /api/v1/runs/{id}:
     get:
       summary: Read one run

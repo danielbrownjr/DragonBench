@@ -1,5 +1,7 @@
 #include "db_run.h"
 
+#include "db_fan.h"
+
 #include <ctype.h>
 #include <stdio.h>
 #include <string.h>
@@ -7,7 +9,7 @@
 static const char *const names[DB_WORKLOAD_COUNT] = {
     "BOOT", "IDLE", "WIFI_ASSOCIATED_IDLE", "NET_TX", "NET_RX",
     "NET_BIDIRECTIONAL", "CPU_STRESS", "FLASH_WRITE", "NVS_WRITE",
-    "OTA_PARTITION_WRITE", "CONTROLLED_REBOOT"
+    "OTA_PARTITION_WRITE", "CONTROLLED_REBOOT", "FAN_PWM_HOLD"
 };
 
 const char *db_workload_name(db_workload_t workload) {
@@ -26,16 +28,34 @@ bool db_workload_parse(const char *name, db_workload_t *out) {
 }
 
 bool db_workload_supported(db_workload_t workload) {
+    if (workload == DB_FAN_PWM_HOLD) return DB_EXPERIMENT_FAN_CHARACTERIZATION;
     return workload >= DB_BOOT && workload < DB_WORKLOAD_COUNT;
 }
 
 bool db_request_validate(const db_run_request_t *request, char *error, size_t error_len) {
+    if (request && request->workload == DB_FAN_PWM_HOLD && !db_workload_supported(DB_FAN_PWM_HOLD)) {
+        snprintf(error, error_len, "FAN_PWM_HOLD requires the fan-characterization experiment profile");
+        return false;
+    }
     if (!request || !db_workload_supported(request->workload)) {
         snprintf(error, error_len, "unsupported workload");
         return false;
     }
     if (request->duration_ms == 0 || request->duration_ms > 3600000U) {
         snprintf(error, error_len, "duration_ms must be 1..3600000");
+        return false;
+    }
+    const bool fan = request->workload == DB_FAN_PWM_HOLD;
+    if (!fan && (request->pwm_hz_set || request->sink_duty_set)) {
+        snprintf(error, error_len, "pwm_hz and sink_duty_pct apply only to FAN_PWM_HOLD");
+        return false;
+    }
+    if (fan && (!request->pwm_hz_set || !db_fan_pwm_hz_valid(request->pwm_hz))) {
+        snprintf(error, error_len, "pwm_hz must be %u..%u", DB_FAN_PWM_HZ_MIN, DB_FAN_PWM_HZ_MAX);
+        return false;
+    }
+    if (fan && (!request->sink_duty_set || !db_fan_sink_duty_valid(request->sink_duty_tenths_pct))) {
+        snprintf(error, error_len, "sink_duty_pct must be 0..100 in 0.1 steps");
         return false;
     }
     const bool network = request->workload == DB_NET_TX || request->workload == DB_NET_RX ||
@@ -75,4 +95,11 @@ void db_run_finish(db_run_t *run, const char *result, uint64_t now_ms) {
     run->state = DB_RUN_COMPLETE;
     run->ended_ms = now_ms;
     snprintf(run->result, sizeof(run->result), "%s", result ? result : "fail");
+}
+
+bool db_status_ready(bool device_ready, const db_run_t *run) {
+    if (!device_ready || !run) return false;
+    if (run->state == DB_RUN_IDLE) return true;
+    return run->state == DB_RUN_COMPLETE && strcmp(run->result, "pass") == 0 &&
+           run->request.workload != DB_CONTROLLED_REBOOT;
 }

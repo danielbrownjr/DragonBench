@@ -8,14 +8,28 @@ rail stability, and reset/brownout behavior.
 
 It is not JumpJet or DragonBreath firmware, a performance benchmark, a generic
 HAL, a device-control application, or an authority for product safety limits.
-The firmware contains no heater or fan GPIOs and exposes no actuator API.
+Every image is one board profile plus one
+[experiment profile](docs/EXPERIMENT_PROFILES.md). The default `baseline`
+profile contains no heater or fan GPIOs and exposes no actuator API. The
+[`fan-characterization` profile](docs/FAN_CHARACTERIZATION.md) adds a single
+stimulus workload, `FAN_PWM_HOLD`, that drives only the gate of an external
+open-drain stage and counts tach edges. That is characterization equipment,
+not product fan control: no profile has a heater path, a closed loop,
+thresholds, or fan-safety policy, and `heater_capability` and
+`fan_control_capability` are `false` in every image. `/api/v1/device` reports
+the board profile, experiment profile, build revision, device identity, and
+where each measured quantity comes from.
 
-Version 0.1.0 builds for two ESP32-S3 board profiles, both with 8 MB flash and
-8 MB PSRAM: the N8R8 module (Octal SPI PSRAM, CH343P USB-UART bridge; the
-default) and the Unexpected Maker TinyS3[D] (Quad SPI PSRAM, native USB
-Serial/JTAG, onboard/U.FL RF switch). Browser and CLI clients use the same
-versioned HTTP/JSON API. DUT events identify workload boundaries; all
-voltage/current evidence remains owned by external instruments.
+Version 0.1.0 builds for three ESP32-S3 board profiles, all with 8 MB PSRAM:
+the N8R8 module (8 MB flash, Octal SPI PSRAM, CH343P USB-UART bridge; the
+default), the N16R8 module on a Lonely Binary carrier (16 MB flash, Octal SPI
+PSRAM, onboard RGB LED on GPIO48), and the Unexpected Maker TinyS3[D] (8 MB
+flash, Quad SPI PSRAM, native USB Serial/JTAG, onboard/U.FL RF switch).
+Each board's onboard RGB LED is DragonBench's status light: green when ready
+and idle, off at boot and throughout every run, and never available to
+fixture wiring. Browser and CLI clients use the same versioned HTTP/JSON API.
+DUT events identify workload boundaries; all voltage/current evidence remains
+owned by external instruments.
 
 ## Quick start
 
@@ -40,6 +54,15 @@ mode differs between the boards, and the wrong one aborts at boot with
 ```text
 idf.py -D SDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.tinys3d" set-target esp32s3
 idf.py -D SDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.tinys3d" build
+```
+
+For the N16R8 module, layer its overlay the same way. It keeps the shared
+partition layout, which ends below 8 MB, so the upper half of its 16 MB flash
+is unused:
+
+```text
+idf.py -D SDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.n16r8" set-target esp32s3
+idf.py -D SDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.n16r8" build
 ```
 
 Delete a generated `sdkconfig` before switching profiles; existing values take
@@ -83,6 +106,7 @@ python -m cli.dragonbench traffic-peer --port 5001 --mode echo --duration 60
 ```
 
 See [bench workflow](docs/BENCH_WORKFLOW.md), [target profile](docs/TARGET_ESP32S3.md),
+[experiment profiles](docs/EXPERIMENT_PROFILES.md), [fan characterization](docs/FAN_CHARACTERIZATION.md),
 and [protocol contract](protocol/openapi.yaml).
 
 ## Validation status
@@ -108,6 +132,19 @@ mDNS on both interfaces have been validated. The `/setup` page itself has not
 yet been exercised on hardware, and workload execution and electrical
 characterization remain unvalidated there too. See
 [TinyS3[D] profile](docs/TARGET_TINYS3D.md).
+
+On one N16R8 board, the baseline image's flash, boot, the 8 MB Octal PSRAM
+test, the status LED, flashing through both USB-C connectors, the direct access
+point, mDNS and the read-only API have been validated. Station mode, workload
+execution and electrical characterization remain unvalidated there. See
+[N16R8 profile](docs/TARGET_N16R8.md).
+
+The `fan-characterization` experiment profile builds with ESP-IDF 5.3.5 once
+its wiring is stated, and refuses to build without it. Its stimulus lifecycle
+and tach arithmetic pass host tests. Its fixture wiring is provisional. On the
+N16R8, with that wiring and nothing attached, the image boots and holds the
+gate pin at the expected static levels for 0% and 100% sink duty. The fixture,
+fan, tach, PWM waveform and PPR remain unvalidated on hardware.
 
 ## Scope rule
 

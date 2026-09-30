@@ -13,7 +13,8 @@
     "result": {"enum": ["pass", "fail", "aborted", "unsupported"]},
     "parameters": {"type": "object"},
     "metrics": {"type": "object"},
-    "target": {"enum": ["esp32s3-n8r8", "esp32s3-tinys3d"]},
+    "truncated": {"const": true, "description": "Event exceeded the device event slot; parameters and metrics were dropped from /api/v1/events (the serial log keeps the full line)"},
+    "target": {"enum": ["esp32s3-n8r8", "esp32s3-n16r8", "esp32s3-tinys3d"]},
     "firmware_version": {"type": "string"}
   },
   "additionalProperties": true

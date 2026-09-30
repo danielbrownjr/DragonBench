@@ -11,12 +11,12 @@ permissions:
 
 jobs:
   esp32s3-build:
-    name: ESP-IDF 5.3.5 / ESP32-S3 ${{ matrix.profile }}
+    name: ESP-IDF 5.3.5 / ESP32-S3 ${{ matrix.profile }} / baseline
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        profile: [n8r8, tinys3d]
+        profile: [n8r8, n16r8, tinys3d]
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
@@ -26,7 +26,72 @@ jobs:
           esp_idf_version: v5.3.5
           target: esp32s3
           path: .
-          command: bash ci/build-esp32s3.sh ${{ matrix.profile }}
+          command: bash ci/build-esp32s3.sh ${{ matrix.profile }} baseline
+
+  fan-characterization-configured:
+    name: ESP-IDF 5.3.5 / ESP32-S3 ${{ matrix.board }} / fan-characterization (compile fixture)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # CI COMPILE FIXTURES ONLY. These GPIO numbers exist so hosted CI
+        # compiles the real fan-characterization backend. They are NOT
+        # DragonBench reference wiring, NOT JumpJet wiring, and NOT hardware
+        # recommendations; no fixture has been wired. Each set passes the
+        # firmware's reserved/conflict guards for its board (TinyS3[D] GPIO38
+        # RF switch, N16R8 GPIO48 onboard RGB LED, Octal PSRAM 33-37 on N8R8
+        # and N16R8, strapping, USB, flash, console). n8r8 and tinys3d use
+        # opposite gate sink levels so both stage polarities compile. n16r8
+        # matches the DragonBench Rev 0 bench fixture wiring (GPIO6 gate of a
+        # non-inverting N-channel stage, GPIO7 tach): DragonBench compile/bench
+        # fixture wiring only, not JumpJet GPIOs, product requirements, or fan
+        # safety thresholds. PPR stays unknown.
+        include:
+          - board: tinys3d
+            gate_gpio: 4
+            gate_sink_level: 1
+            tach_gpio: 5
+          - board: n8r8
+            gate_gpio: 6
+            gate_sink_level: 0
+            tach_gpio: 7
+          - board: n16r8
+            gate_gpio: 6
+            gate_sink_level: 1
+            tach_gpio: 7
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Write compile-only fixture wiring (runner workspace only, never committed)
+        run: |
+          cat > sdkconfig.fan-characterization.local <<EOF
+          # CI COMPILE FIXTURE ONLY: not reference, JumpJet, or recommended wiring.
+          CONFIG_DB_FAN_PWM_GATE_GPIO=${{ matrix.gate_gpio }}
+          CONFIG_DB_FAN_GATE_SINK_LEVEL=${{ matrix.gate_sink_level }}
+          CONFIG_DB_FAN_TACH_GPIO=${{ matrix.tach_gpio }}
+          EOF
+          cat sdkconfig.fan-characterization.local
+      - name: Clean configure and build
+        uses: espressif/esp-idf-ci-action@v1
+        with:
+          esp_idf_version: v5.3.5
+          target: esp32s3
+          path: .
+          command: bash ci/build-esp32s3.sh ${{ matrix.board }} fan-characterization
+
+  fan-characterization-refusal:
+    name: ESP-IDF 5.3.5 / fan-characterization refuses a build without wiring
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Build the experiment profile without its wiring overlay
+        uses: espressif/esp-idf-ci-action@v1
+        with:
+          esp_idf_version: v5.3.5
+          target: esp32s3
+          path: .
+          command: bash ci/build-esp32s3.sh tinys3d fan-characterization --expect-refusal
 
   python-host:
     name: Python host contracts
@@ -43,8 +108,10 @@ jobs:
       - name: Run tests
         env:
           DRAGONBENCH_REQUIRE_NODE: "1"
+          DRAGONBENCH_REQUIRE_CC: "1"
         run: |
           node --version
+          cc --version
           python -m unittest discover -s tests -v
       - name: Run reset characterization tooling tests
         run: python -m unittest tools.tests.test_parsing -v
@@ -56,21 +123,36 @@ jobs:
           set +e
           python -m cli.dragonbench run IDLE --duration 0
           status=$?
+          test "$status" -eq 2
+          python -m cli.dragonbench fan-sweep --pwm-hz 0 --low-pct 0 --high-pct 10 --step-pct 5 --order up --hold-ms 1000 --output sweep.json
+          status=$?
           set -e
           test "$status" -eq 2
 
   native-c:
-    name: Native C state machine
+    name: Native C state machine (${{ matrix.experiment }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - experiment: baseline
+            defines: ""
+          - experiment: fan-characterization
+            defines: "-DCONFIG_DB_EXPERIMENT_FAN_CHARACTERIZATION=1"
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
       - name: Compile with warnings and sanitizers
-        run: >-
-          gcc -std=c11 -Wall -Wextra -Wpedantic -Werror
-          -fsanitize=address,undefined -fno-omit-frame-pointer
-          -Ifirmware/common/include
-          firmware/common/db_run.c firmware/common/db_network.c tests/native/test_db_run.c
-          -o test_db_run
-      - name: Execute state-machine test
-        run: ./test_db_run
+        run: |
+          for test in test_db_run test_db_fan; do
+            gcc -std=c11 -Wall -Wextra -Wpedantic -Werror \
+              -fsanitize=address,undefined -fno-omit-frame-pointer ${{ matrix.defines }} \
+              -Ifirmware/common/include \
+              firmware/common/db_run.c firmware/common/db_network.c firmware/common/db_fan.c \
+              tests/native/$test.c -o $test
+          done
+      - name: Execute state-machine and fan-characterization tests
+        run: |
+          ./test_db_run
+          ./test_db_fan
