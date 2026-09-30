@@ -52,6 +52,19 @@ function page(device) {
       const post = { url, body: opts.body ? JSON.parse(opts.body) : null, signalled: !!opts.signal, aborted: false };
       posts.push(post);
       const r = url === '/api/v1/runs' ? device.post : device.abort;
+      // Headers arrive at once but the body never finishes; aborting the signal
+      // errors the body read, as it does in a browser.
+      if (r && r.stallBody) return Promise.resolve({ ok: r.code >= 200 && r.code < 300, status: r.code,
+        json: () => new Promise((resolve, reject) => {
+          post.bodyStarted = true;
+          opts.signal.addEventListener('abort', () => {
+            post.aborted = true;
+            reject(Object.assign(new Error('The operation was aborted.'), { name: 'AbortError' }));
+          });
+        }) });
+      // A complete response whose body is not JSON.
+      if (r && r.badJson) return Promise.resolve({ ok: r.code >= 200 && r.code < 300, status: r.code,
+        json: () => Promise.reject(new SyntaxError('Unexpected end of JSON input')) });
       if (r === 'hold') return new Promise((resolve, reject) => {
         device.release = r2 => resolve(reply(r2));
         if (opts.signal) opts.signal.addEventListener('abort', () => {
@@ -246,6 +259,31 @@ function device(status) { return { status, workloads: WORKLOADS, post: null, abo
     d.status = st('aborting', 'IDLE', 'r12', 'none');
     await p.elapse(4000); s.push(p.snap());
     out.abort_timeout_landed = s;
+  }
+  { // start accepted (201 headers) but the body stalls until the timeout
+    const d = device(IDLE); const p = page(d); await p.tick(0);
+    d.post = { code: 201, stallBody: true };
+    await p.click('CPU_STRESS'); const s = [p.snap()];
+    d.status = st('running', 'CPU_STRESS', 'r13', 'none');
+    await p.elapse(4000); s.push(p.snap());
+    out.start_body_stall = { snaps: s, post: p.posts[0] };
+  }
+  { // abort answered with 200 headers but the body stalls until the timeout
+    const d = device(st('running', 'IDLE', 'r14', 'none')); const p = page(d); await p.tick(0);
+    d.abort = { code: 200, stallBody: true };
+    await p.abort(); const s = [p.snap()];
+    d.status = st('aborting', 'IDLE', 'r14', 'none');
+    await p.elapse(4000); s.push(p.snap());
+    out.abort_body_stall = { snaps: s, post: p.posts[0] };
+  }
+  { // a complete response that is not JSON still falls back to an empty payload
+    const d = device(IDLE); const p = page(d); await p.tick(0);
+    d.post = { code: 409, badJson: true };
+    await p.click('NVS_WRITE'); const a = p.snap();
+    d.status = st('running', 'IDLE', 'r15', 'none'); await p.tick(2000);
+    d.abort = { code: 409, badJson: true };
+    await p.abort(); const b = p.snap();
+    out.bad_json = [a, b];
   }
   process.stdout.write(JSON.stringify(out));
 })().catch(e => { console.error(e && e.stack || e); process.exit(1); });
@@ -492,6 +530,41 @@ class RunPageBehaviourTests(unittest.TestCase):
         for snap in abort[2:]:
             self.assertEqual(snap["pendingTimers"], [], snap)
             self.assertEqual(snap["abortedPosts"], 0, snap)
+
+    def test_start_body_stall_times_out_instead_of_reading_as_refused(self):
+        t = self.out["start_body_stall"]
+        starting, timed_out = t["snaps"]
+        self.assertTrue(t["post"]["bodyStarted"])
+        self.assertEqual(starting["status"], "starting")
+        self.assertTrue(t["post"]["aborted"])
+        self.assertIn("No response to the start request", timed_out["message"])
+        self.assertNotIn("Refused", timed_out["message"])
+        self.assertNotIn("HTTP 201", timed_out["message"])
+        self.assertNotEqual(timed_out["status"], "starting")
+        self.assertGreater(timed_out["statusGets"], starting["statusGets"])
+        self.assertEqual(timed_out["status"], "running")
+        self.assertEqual(timed_out["id"], "r13")
+
+    def test_abort_body_stall_times_out_instead_of_reading_as_requested(self):
+        t = self.out["abort_body_stall"]
+        requested, timed_out = t["snaps"]
+        self.assertTrue(t["post"]["bodyStarted"])
+        self.assertTrue(requested["abortDisabled"])
+        self.assertTrue(t["post"]["aborted"])
+        self.assertIn("No response to the abort request", timed_out["message"])
+        self.assertNotIn("Abort requested", timed_out["message"])
+        self.assertFalse(timed_out["abortDisabled"])
+        self.assertGreater(timed_out["statusGets"], requested["statusGets"])
+        self.assertEqual(timed_out["status"], "aborting")
+        self.assertNotEqual(timed_out["status"], "aborted")
+        self.assertTrue(timed_out["abortHidden"])
+
+    def test_non_json_reply_still_reports_the_http_status(self):
+        start, abort = self.out["bad_json"]
+        self.assertEqual(start["message"], "Refused by the device (HTTP 409): no reason given")
+        self.assertEqual(start["state"], "READY")
+        self.assertEqual(abort["message"], "Abort refused (HTTP 409): no reason given")
+        self.assertEqual(abort["abortedPosts"], 0)
 
 
 if __name__ == "__main__":
