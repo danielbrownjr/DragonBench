@@ -29,6 +29,14 @@ jobs:
           target: esp32s3
           path: .
           command: bash ci/build-esp32s3.sh ${{ matrix.profile }} baseline
+      - name: Prove the build left the checkout clean
+        # The committed lockfile must be consumed, not rewritten, and nothing
+        # the build generates may make the image's provenance "dirty".
+        run: |
+          git status --porcelain
+          test -z "$(git status --porcelain)"
+          find build -name db_build_provenance.h -exec cat {} \;
+          grep -q '#define DB_BUILD_SOURCE_TREE "clean"' "$(find build -name db_build_provenance.h)"
 
   esp32c5-build:
     # ESP32-C5 is only a preview target before ESP-IDF 5.5.1, so it builds in
@@ -50,24 +58,14 @@ jobs:
           target: esp32c5
           path: .
           command: bash ci/build-firmware.sh esp32c5 ${{ matrix.profile }} baseline
-      - name: Show the ESP32-C5 Component Manager lockfile and build provenance
-        # dependencies.lock.esp32c5 is not committed yet: it has to be resolved
-        # against the component registry (docs/TARGET_ESP32C5.md).
-        if: always()
+      - name: Prove the build left the checkout clean
+        # The committed lockfile must be consumed, not rewritten, and nothing
+        # the build generates may make the image's provenance "dirty".
         run: |
-          cat dependencies.lock.esp32c5 || true
-          # Byte-exact copy for environments that cannot download artifacts.
-          sha256sum dependencies.lock.esp32c5 || true
-          base64 -w0 dependencies.lock.esp32c5 && echo || true
           git status --porcelain
+          test -z "$(git status --porcelain)"
           find build -name db_build_provenance.h -exec cat {} \;
-      - name: Upload the ESP32-C5 Component Manager lockfile
-        if: always()
-        uses: actions/upload-artifact@v6
-        with:
-          name: esp32c5-dependencies-lock
-          path: dependencies.lock.esp32c5
-          if-no-files-found: warn
+          grep -q '#define DB_BUILD_SOURCE_TREE "clean"' "$(find build -name db_build_provenance.h)"
 
   fan-characterization-configured:
     name: ESP-IDF 5.3.5 / ESP32-S3 ${{ matrix.board }} / fan-characterization (compile fixture)

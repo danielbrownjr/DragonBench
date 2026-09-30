@@ -39,6 +39,7 @@ pin and scope documented before adoption.
 The firmware directly declares its ESP-IDF component dependencies and uses the
 external `espressif/mdns` component pinned at 1.12.0. The checked-in
 Component Manager lockfile `dependencies.lock` records the resolved ESP-IDF
-5.3.5/ESP32-S3 graph; other SoC targets use `dependencies.lock.<soc>`;
+5.3.5/ESP32-S3 graph, and `dependencies.lock.esp32c5` the ESP-IDF 5.5.5/ESP32-C5
+graph resolved by hosted CI;
 generated configuration and downloaded component sources are not repository
 inputs.

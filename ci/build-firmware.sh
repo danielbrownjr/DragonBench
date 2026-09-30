@@ -119,6 +119,16 @@ if [[ "$actual_idf" != *"v$idf_version"* ]]; then
     exit 2
 fi
 
+# Each SoC target builds from its committed Component Manager lockfile (see
+# CMakeLists.txt). A missing one would be re-resolved silently and leave the
+# checkout dirty, so refuse instead.
+lockfile="dependencies.lock"
+[[ "$target" == esp32s3 ]] || lockfile="dependencies.lock.$target"
+if [[ ! -f "$lockfile" ]]; then
+    echo "$target builds from the committed $lockfile, which is missing (docs/TARGET_ESP32C5.md)" >&2
+    exit 2
+fi
+
 rm -f sdkconfig
 idf.py -D SDKCONFIG_DEFAULTS="$defaults" fullclean
 idf.py -D SDKCONFIG_DEFAULTS="$defaults" set-target "$target" 2>&1 | tee idf-configure.log
