@@ -1,0 +1,355 @@
+# ESP32-C5 target and the provisional WROOM-1U/N32R8 board profile
+
+> **Validation state: build-verified only. No DragonBench image has run on an
+> ESP32-C5.** The board profile `esp32c5-wroom1u-n32r8` is **provisional**: its
+> board-specific content comes from the seller's listing and pinout image for
+> the board Dan ordered, not from a schematic or the physical board. Every
+> board fact below is labelled with the evidence behind it. Nothing
+> seller-claimed may be promoted to confirmed without the
+> [physical bring-up checklist](#physical-bring-up-checklist).
+
+## Target, board, experiment
+
+ESP32-C5 is its own SoC target, not an ESP32-S3 variant:
+
+| Layer | ESP32-S3 | ESP32-C5 |
+|---|---|---|
+| SoC target layer | `firmware/targets/esp32s3/include/db_soc.h` | `firmware/targets/esp32c5/include/db_soc.h` |
+| SoC defaults (ESP-IDF layers them automatically) | `sdkconfig.defaults.esp32s3` | `sdkconfig.defaults.esp32c5` |
+| ESP-IDF lane | 5.3.5 | 5.5.5 |
+| Board profiles | `n8r8`, `n16r8`, `tinys3d` | `wroom1u-n32r8` (provisional) |
+| Experiment profiles | `baseline`, `fan-characterization` | `baseline` only |
+
+The application (`firmware/main`) and the host-tested core
+(`firmware/common`) are shared. SoC names reach an image only through
+`db_soc.h`, which the build selects by `IDF_TARGET`; a configure-time check
+(`firmware/main/board_target_check.cmake`) refuses any board profile that is
+not `<IDF_TARGET>-<board>`, and ESP32-S3 is the only target with a default
+board.
+
+```text
+bash ci/build-firmware.sh esp32c5 wroom1u-n32r8        # needs ESP-IDF 5.5.5
+idf.py -D SDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.wroom1u-n32r8" set-target esp32c5
+idf.py -D SDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.wroom1u-n32r8" build
+```
+
+The script refuses, before ESP-IDF runs, an S3 board on C5, a C5 board on S3,
+an unknown board, `fan-characterization` on C5, and a build from the other
+target's ESP-IDF release.
+
+### Why the name `esp32c5-wroom1u-n32r8`
+
+It follows the existing `<soc>-<board>` identity convention and names only
+what the order is claimed to be: the ESP32-C5-WROOM-1U module with the N32R8
+(32 MB flash, 8 MB PSRAM) memory option. It names no manufacturer (the seller
+is not established as the designer; see [Board identity](#board-identity)),
+does not say `devkit` (that would suggest Espressif's ESP32-C5-DevKitC-1), and
+is not `generic`, because it carries carrier-specific claims (memory, no RGB).
+If bring-up shows a different module or memory option, the profile is renamed,
+not stretched.
+
+## ESP-IDF support
+
+Checked against ESP-IDF's own source at each release tag
+(`tools/idf_py_actions/constants.py`, root `Kconfig`):
+
+| Release | ESP32-C5 status |
+|---|---|
+| 5.3.5 (the ESP32-S3 lane) | `PREVIEW_TARGETS`. `set-target esp32c5` works only as a preview (`idf.py --preview`), and its default chip-version choice (`IDF_TARGET_ESP32C5_MP_VERSION`) selects `IDF_ENV_FPGA`. Not usable for real hardware. |
+| 5.4 – 5.4.4 | Still `PREVIEW_TARGETS` |
+| 5.5 | Still `PREVIEW_TARGETS` (and `IDF_ENV_BRINGUP` selected) |
+| **5.5.1** | **First release with `esp32c5` in `SUPPORTED_TARGETS`** |
+| 5.5.5 | Supported; latest 5.5 patch release at the time of writing. **Chosen for the C5 lane.** |
+| 6.0.x, 6.1 | Supported. 6.1 is the current `stable` documentation release. |
+
+5.5.5 is chosen over 6.x because it is the smallest step from the 5.3 API the
+shared firmware is written against (6.0 is a major release with breaking
+changes) while still fully supporting the C5. The S3 lane is **not** bumped:
+`ci/build-firmware.sh` pins 5.3.5 for `esp32s3` and 5.5.5 for `esp32c5`, CI
+runs both lanes, and tests hold every CI job to its target's lane.
+
+Every component DragonBench uses builds for ESP32-C5 under 5.5.5 with no
+warnings: `esp_wifi`, `esp_netif`, `esp_event`, `esp_http_server`,
+`nvs_flash`, `app_update` (OTA), `esp_partition`, `spi_flash`, `esp_psram`,
+`esp_timer`, `esp_driver_gpio`, `esp_driver_tsens` (SoC temperature),
+`esp_driver_rmt` (status RGB, compiled out with no LED), `esp_driver_ledc` and
+`esp_driver_pcnt` (fan fixture, unused on C5), `json`, logging, and the
+`espressif/mdns` 1.12.0 component (`idf: ">=5.0"`, no target restriction).
+The console is UART0 with USB Serial/JTAG as the secondary console (ESP-IDF
+default for C5), so logs appear on both USB paths if the carrier wires them.
+
+**Lockfile.** Each SoC target resolves its own Component Manager lockfile
+(`CMakeLists.txt`): ESP32-S3 keeps `dependencies.lock`; ESP32-C5 uses
+`dependencies.lock.esp32c5`, which is **not committed yet**. It must be
+resolved against the component registry, which was unreachable from the
+environment that built this branch. The first registry-connected C5 build
+(the `esp32c5-build` CI job prints it) creates it; commit it so C5 images stop
+reporting a `dirty` source tree.
+
+## dragon-core
+
+DragonBench has **no dependency on dragon-core** (`docs/ARCHITECTURE.md`); no
+commit is pinned, so nothing constrains the C5 target. For a future adoption,
+`danielbrownjr/dragon-core` at `10fc3ed` (Core 0.28.2) was inspected:
+
+- No `CONFIG_IDF_TARGET_ESP32S3` code, no Xtensa-specific code, no S3-only
+  includes, no target enums or target-specific Kconfig, no partition layout.
+- Component manifests require `idf: ">=5.3"`, which the C5 lane satisfies.
+  Its own CI compiles only ESP32-C3 on ESP-IDF 5.3; `tools/idf-build.sh`
+  already maps `esp32c5` to the RISC-V compiler. No C5 build has been run.
+- Wi-Fi (`dc_wifi`): the soft AP is fixed on channel 1 (2.4 GHz), scans cover
+  all channels, it makes no band-mode calls, and a user-facing message says
+  "the heater is 2.4 GHz only". These are product assumptions, effectively
+  2.4 GHz-only, and would need review before dragon-core Wi-Fi ran on a C5.
+
+## Confirmed from primary source
+
+Espressif sources only: ESP-IDF 5.5.5 source (`soc_caps.h`, `uart_pins.h`,
+`spi_pins.h`, `io_mux_reg.h`, `esp_quad_psram_defs_ap.h`, the ESP32-C5 GPIO
+documentation source) and the ESP32-C5-DevKitC-1 v1.2 user guide
+(`espressif/esp-dev-kits`). The Espressif ESP32-C5 and WROOM-1/1U datasheets
+could not be retrieved from the environment that wrote this; facts that need
+them are marked.
+
+- **CPU:** single-core 32-bit RISC-V (`SOC_CPU_CORES_NUM 1`), 240 MHz
+  (`ESP_DEFAULT_CPU_FREQ_MHZ 240` in the built image).
+- **Radio:** Wi-Fi 6 (`SOC_WIFI_HE_SUPPORT`) on 2.4 GHz and 5 GHz
+  (`SOC_WIFI_SUPPORT_5G`); Bluetooth LE; IEEE 802.15.4
+  (`SOC_IEEE802154_SUPPORTED`; the DevKitC guide lists Zigbee and Thread).
+  DragonBench implements none of BLE, 802.15.4, Zigbee, Thread or Matter.
+- **GPIO:** GPIO0–GPIO28 (29 pads). The Kconfig GPIO settings are limited to
+  that range on C5.
+- **Flash/PSRAM bus:** GPIO16–GPIO22 are the SPI0/1 flash/PSRAM pins and are
+  not broken out on WROOM modules. **GPIO15 is the PSRAM chip select
+  (`SPICS1`, `MSPI_IOMUX_PIN_NUM_CS1`) on any module with PSRAM**, "thus
+  unavailable for external use" (DevKitC-1 guide, J3 footnote); ESP-IDF's
+  PSRAM driver claims it.
+- **PSRAM:** Quad SPI only on C5 (the only `SPIRAM_MODE` choice); 40, 80 or
+  120 MHz.
+- **Native USB:** USB Serial/JTAG on GPIO13 (D-) and GPIO14 (D+)
+  (`USB_INT_PHY0_DM/DP_GPIO_NUM`), full speed only. The seller's GPIO14 = D+,
+  GPIO13 = D- matches.
+- **UART0:** TX GPIO11, RX GPIO12 (`U0TXD/U0RXD_GPIO_NUM`). The seller's
+  mapping matches.
+- **Strapping pins:** ESP-IDF's C5 GPIO documentation lists GPIO2, GPIO7,
+  GPIO25, GPIO27 and GPIO28; the DevKitC-1 guide lists MTMS (GPIO2), MTDI
+  (GPIO3), GPIO7, GPIO25, GPIO26, GPIO27 and GPIO28. The sources disagree on
+  GPIO3 and GPIO26, so DragonBench treats the union as strapping. Boot mode is
+  selected by GPIO26/27/28 (GPIO28 high: SPI boot); this last point comes from
+  a search excerpt of Espressif's hardware design guidelines, not a direct
+  read, and must be confirmed against the datasheet.
+- **Other:** GPIO2–GPIO5 double as the pad JTAG pins (MTMS/MTDI/MTCK/MTDO);
+  JTAG uses USB Serial/JTAG by default. GPIO0/GPIO1 double as the 32 kHz
+  crystal pins. GPIO0–GPIO6 are the LP GPIOs.
+- **Espressif's own ESP32-C5-DevKitC-1** (v1.2): two 16-pin headers (J1, J3),
+  a USB-to-UART bridge port and a native USB port, both able to flash, and an
+  addressable RGB LED on GPIO27.
+
+## Seller-claimed
+
+From Dan's order listing and the seller's pinout image. Not validated.
+
+- "ESP32-C5 WiFi6 development board", ESP32-C5-WROOM-1U module, external
+  dual-band antenna.
+- 240 MHz RISC-V, Wi-Fi 6 on 2.4 and 5 GHz, BLE 5, IEEE 802.15.4.
+- **32 MB flash, 8 MB PSRAM.** See [Memory](#memory).
+- "Compatible with the pinout of the ESP32-S3-DevKitC-1 development board."
+  See [Header mapping](#header-mapping): the header actually matches
+  **Espressif's ESP32-C5-DevKitC-1**, not the S3 board, and DragonBench claims
+  no electrical, mechanical, peripheral or firmware compatibility with either.
+- The header mapping below, two USB-C connectors, RESET and BOOT buttons, a
+  small battery connector, `VBAT` header pins, and an external antenna
+  connector.
+
+### Header mapping
+
+Seller image against the ESP32-C5-DevKitC-1 v1.2 headers (primary source):
+
+| Pos | Seller left | DevKitC-1 J1 | Seller right | DevKitC-1 J3 |
+|---|---|---|---|---|
+| 1 | 3V3 | 3V3 | GND | G |
+| 2 | RST | RST | GPIO11 / U0TXD | TX (GPIO11) |
+| 3 | GPIO2 | 2 (MTMS, strapping) | GPIO12 / U0RXD | RX (GPIO12) |
+| 4 | GPIO3 | 3 (MTDI, strapping) | GPIO24 | 24 |
+| 5 | GPIO0 | 0 | GPIO23 | 23 |
+| 6 | GPIO1 | 1 | **GPIO15** | **NC/15: SPICS1 on PSRAM modules** |
+| 7 | GPIO6 | 6 | GPIO27 | 27 (strapping; DevKitC RGB LED) |
+| 8 | GPIO7 | 7 (strapping) | GPIO4 | 4 |
+| 9 | GPIO8 | 8 | GPIO5 | 5 |
+| 10 | GPIO9 | 9 | NC | NC |
+| 11 | GPIO10 | 10 | GPIO28 | 28 (strapping) |
+| 12 | GPIO26 | 26 (strapping) | GND | G |
+| 13 | GPIO25 | 25 (strapping) | GPIO14 / USB D+ | 14, USB_D+ |
+| 14 | 5V | 5V | GPIO13 / USB D- | 13, USB_D- |
+| 15 | GND | G | GND | G |
+| 16 | **VBAT** | NC | **VBAT** | NC |
+
+**Flags:**
+
+1. The pinout is the ESP32-C5-DevKitC-1 layout except for both position-16
+   pins (seller `VBAT`, DevKitC `NC`) and right position 6. The "S3-DevKitC-1"
+   wording on the seller image is most likely a mislabel; it is not treated
+   as a compatibility claim of any kind.
+2. **Right position 6 is labelled GPIO15, but on an N32R8 (PSRAM) module
+   GPIO15 is the PSRAM chip select.** Either the carrier leaves it
+   unconnected, or connects a pin the firmware must never drive. Nothing may
+   be wired to it until continuity is checked, and it is never usable while
+   PSRAM is fitted.
+
+## Unverified physical board facts
+
+Everything that needs Dan's specimen: exact module marking; flash
+manufacturer and capacity; PSRAM manufacturer, capacity and interface; which
+USB-C connector is native USB, USB-UART bridge, power only, or dual-role, and
+the bridge chip; the battery charger and power path; `VBAT` behavior;
+regulator part and current capability; RGB LED existence, part, supply and
+GPIO; the `NC` pads and right position 6; how BOOT and RESET are wired; header
+continuity for every pin; physical pin spacing and mechanical fit; and the
+antenna connector type.
+
+### Board identity
+
+A Waveshare board, ESP32-C5-WIFI6-KIT, is sold in an N32R8 variant with an
+ESP32-C5-WROOM-1U, two 16-pin headers described as ESP32-C5-DevKitC-1
+compatible, a native USB-C and a USB-C-to-UART port, and an external antenna
+(Waveshare product page and a CNX Software article, via search excerpts).
+That resembles Dan's board, but neither the seller nor the images establish
+the manufacturer, and a copy or a different design is equally possible. The
+profile therefore names no manufacturer. If Dan's specimen turns out to be a
+documented board, its schematic becomes the primary source for the carrier.
+
+## Memory
+
+- **N32R8 is plausible but not confirmed from a primary source here.**
+  Distributor listings and third-party pages show an ESP32-C5-WROOM-1U-N32R8
+  (32 MB Quad flash, 8 MB PSRAM), and nothing seen contradicts it, but the
+  ordering table in Espressif's WROOM-1/1U datasheet could not be read.
+  Confirm it there and against the module marking.
+- The profile reports memory as a claim: `memory.board_claim` is
+  `{"flash_bytes": 33554432, "psram_bytes": 8388608, "source":
+  "expected_from_seller"}`. It is never validated identity.
+- The image measures memory itself at boot: `memory.flash.detected_bytes` is
+  the capacity in the flash chip's JEDEC ID, and `memory.psram.detected_bytes`
+  the size the PSRAM driver initialized (0 if none).
+- The image header states **8 MB** (shared `sdkconfig.defaults`), not 32 MB.
+  ESP-IDF refuses to boot when the header claims more flash than the chip
+  reports, so a 32 MB header would turn a wrong seller claim into a boot
+  failure instead of a measurement. The partition table ends below 8 MB
+  anyway. Flash above 16 MB (4-byte addressing) is not exercised.
+- PSRAM is Quad SPI at 40 MHz (the ESP-IDF default, until the part is
+  identified), and `CONFIG_SPIRAM_IGNORE_NOTFOUND` lets the board boot and
+  report 0 bytes instead of panicking if the claimed PSRAM is absent or fails.
+
+### Partition table
+
+`partitions.csv` is reused unchanged: NVS at `0x9000`, OTA data `0xf000`, PHY
+data `0x11000`, two 3 MB OTA slots at `0x20000` and `0x320000`, and a 1 MB
+`scratch` partition at `0x620000`, ending at `0x720000` (7.1 MB). On C5 the
+second-stage bootloader starts at `0x2000` (`BOOTLOADER_OFFSET_IN_FLASH`,
+S3: `0x0`) and must end below the partition table at `0x8000`; ESP-IDF's size
+check passes with the 5.5.5 bootloader at `0x5660` bytes, only `0x9a0`
+(10 %) free, so a larger bootloader (secure boot, for example) would need the
+partition table moved. The baseline app is `0xf1430` bytes, 69 % of each OTA
+slot free. The upper 24.9 MB of a real 32 MB chip is intentionally unused.
+
+## USB and UART
+
+Confirmed on the SoC: native USB on GPIO13/GPIO14, UART0 on GPIO11/GPIO12.
+The seller's labels match both. Which of the two USB-C connectors reaches
+which (or a USB-UART bridge at all) is unverified; do not infer it from
+Espressif's DevKitC-1 layout. The image logs on UART0 and on USB
+Serial/JTAG. Download mode, auto-reset from a bridge's DTR/RTS, and the BOOT
+button's GPIO are unverified.
+
+## GPIO6, GPIO7 and a future fan fixture
+
+The N16R8 bench fixture uses GPIO6 (gate) and GPIO7 (tach). On ESP32-C5:
+
+- **GPIO6** is a plain GPIO (ADC1_CH5, LP_GPIO6, FSPICLK through the IO MUX):
+  not a strapping, USB, UART0 or flash/PSRAM pin, and exposed on the seller's
+  left position 7. It is a **candidate** for a future gate pin once header
+  continuity is checked.
+- **GPIO7 is a strapping pin on ESP32-C5** (both Espressif sources), and a
+  conditioned tach input holds whatever level the fan and pull-up give it at
+  reset. It is **not a candidate** for tach until its strapping function is
+  read in the datasheet and shown to be harmless at both levels, and a
+  non-strapping pin is the better choice regardless.
+
+`fan-characterization` is therefore **unsupported on ESP32-C5**: the build
+script refuses it, and `fan_characterization.c` has an `#error` for any SoC
+without a reviewed fixture pin map (`DB_SOC_FAN_FIXTURE_PIN_GUARDS`). The N16R8
+wiring does not carry over. No JumpJet pins or policy are implied.
+
+## Status RGB and board-owned resources
+
+The seller images show no RGB LED GPIO, power GPIO or LED part, and whether an
+LED is fitted at all is unknown. Espressif's DevKitC-1 drives its LED from
+GPIO27, but that is a different board. The profile claims **no** board-owned
+GPIO: status RGB, RGB power and RF switch are all `-1`, so the image drives no
+LED and reserves nothing. The status light stays absent until the LED, its
+supply and its GPIO are established on the specimen.
+
+## Wi-Fi and 5 GHz
+
+- The SoC supports 5 GHz (primary source). DragonBench leaves the radio's band
+  mode as ESP-IDF sets it and reports it as `network.band_mode`; while
+  connected, `/api/v1/status` reports `network.sta_channel` and
+  `network.sta_band` so a 5 GHz association is visible, not assumed.
+- Fixed for C5: `esp_wifi_get_protocol()` is unsupported in 2.4 + 5 GHz band
+  mode, and the AP start-up diagnostics used it, which would have marked the
+  device not network-ready. Dual-band SoCs now use `esp_wifi_get_protocols()`
+  and `esp_wifi_get_band_mode()`.
+- Gaps, recorded and not fixed on this branch:
+  - The direct access point is fixed on channel 1. With one radio, joining a
+    5 GHz network moves the AP to that 5 GHz channel, so 2.4 GHz-only clients
+    lose the AP (the setup page already warns that the AP may drop).
+  - ESP-IDF's default band mode, country code and 5 GHz channel list on C5
+    are not yet observed; the first boot log (`ap_config ... band_mode=`)
+    shows them.
+  - The station threshold is WPA2-PSK; a WPA3-only 5 GHz network is untested.
+  - Whether the DragonBench bench Wi-Fi offers a 5 GHz SSID is not
+    established here.
+
+## Physical bring-up checklist
+
+Record each result, with photographs or logs, in this document before
+removing the provisional flag.
+
+**Hardware inspection**
+
+- [ ] Photograph the module marking (model, ordering code, date code).
+- [ ] Photograph the PCB front and back.
+- [ ] Identify the antenna connector type and the antenna fitted.
+- [ ] Identify both USB-C roles: native USB, USB-UART bridge (VID:PID and chip
+  marking), power only.
+- [ ] Identify the regulator part and its current rating.
+- [ ] Identify the battery connector, charger IC and power path; measure
+  `VBAT` on both position-16 pins with and without a battery and USB.
+- [ ] Find any RGB LED: part, supply, and GPIO (continuity to the module).
+- [ ] Check continuity from the module to every header pin against the
+  [header mapping](#header-mapping), including right position 6 (GPIO15) and
+  both `NC` pads.
+- [ ] Continuity-check GPIO6 and GPIO7 to left positions 7 and 8.
+- [ ] Trace BOOT and RESET: which GPIO BOOT pulls, and the EN RC network.
+- [ ] Measure the header pitch and row spacing.
+
+**Firmware bring-up** (`bash ci/build-firmware.sh esp32c5 wroom1u-n32r8`)
+
+- [ ] Flash over each USB path that can flash; record the esptool chip
+  revision, MAC, flash ID and detected flash size.
+- [ ] Boot: the first `boot` event reports `soc_target` `esp32c5` and board
+  `esp32c5-wroom1u-n32r8`; no ESP32-S3 string anywhere in the log or API.
+- [ ] `memory.flash.detected_bytes` and `memory.psram.detected_bytes` (and the
+  boot log's PSRAM ID and size); compare with the 32 MB / 8 MB claim.
+- [ ] Wi-Fi 2.4 GHz: AP up, station joins a 2.4 GHz network,
+  `sta_band` `2.4GHz`.
+- [ ] Wi-Fi 5 GHz: station joins a 5 GHz network, `sta_band` `5GHz`, and
+  what happens to the AP; record `band_mode` and the `ap_config` log line.
+- [ ] mDNS name resolves; read-only API (`/api/v1/device`, `status`,
+  `sensors`, `workloads`, `events`) and the landing page work.
+- [ ] Baseline workloads: IDLE, CPU_STRESS, NVS_WRITE, FLASH_WRITE,
+  OTA_PARTITION_WRITE, NET_TX/RX/BIDIRECTIONAL, WIFI_ASSOCIATED_IDLE,
+  CONTROLLED_REBOOT (with `previous_reboot_run_id`).
+- [ ] Reset and download: RESET button, BOOT + RESET into download mode,
+  auto-reset from each USB path, and recovery by full erase and re-flash.
+- [ ] Commit `dependencies.lock.esp32c5` from a registry-connected build.

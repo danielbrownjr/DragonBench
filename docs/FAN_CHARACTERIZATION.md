@@ -133,6 +133,8 @@ Build: board overlay, then experiment overlay, then local wiring:
 idf.py -D SDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.tinys3d;sdkconfig.defaults.fan-characterization;sdkconfig.fan-characterization.local" build
 # or, with the same checks CI uses:
 bash ci/build-esp32s3.sh tinys3d fan-characterization
+# ESP32-S3 only: the fixture pin guards are the reviewed ESP32-S3 map, and
+# ci/build-firmware.sh refuses this profile on ESP32-C5 (docs/TARGET_ESP32C5.md).
 ```
 
 Delete a generated `sdkconfig` before switching profiles. At boot the serial log

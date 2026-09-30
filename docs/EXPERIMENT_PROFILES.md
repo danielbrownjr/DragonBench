@@ -25,12 +25,17 @@ yet.
 ## Building
 
 Layer the board overlay, then at most one experiment overlay, then that
-experiment's local wiring overlay if it has one:
+experiment's local wiring overlay if it has one. ESP-IDF adds the SoC
+target's `sdkconfig.defaults.<soc>` after `sdkconfig.defaults` by itself:
 
 ```text
 idf.py -D SDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.<board>;sdkconfig.defaults.<experiment>;sdkconfig.<experiment>.local" build
-bash ci/build-esp32s3.sh <board> [experiment] [--expect-refusal]
+bash ci/build-firmware.sh <soc> <board> [experiment] [--expect-refusal]
+bash ci/build-esp32s3.sh <board> [experiment] [--expect-refusal]   # the esp32s3 lane
 ```
+
+Each board lists the experiments it supports in `ci/build-firmware.sh`;
+`fan-characterization` is ESP32-S3 only.
 
 Delete a generated `sdkconfig` before switching profiles.
 
@@ -38,7 +43,10 @@ Delete a generated `sdkconfig` before switching profiles.
 
 `/api/v1/device` names the image so artifacts never need reverse-engineering:
 
-- `board_profile` and `experiment_profile`
+- `soc_target`, `board_profile`, `board_profile_provisional`, and
+  `experiment_profile`
+- `memory`: flash and PSRAM sizes measured at boot, plus any
+  `board_claim` with the evidence behind it
 - `build`: `firmware_version`, `git_sha`, `source_tree` (`clean`, `dirty`, or
   `unknown`), and `esp_idf`. The revision is recorded on every build by
   `build_provenance.cmake`. It is `null`/`unknown` whenever git could not
@@ -63,7 +71,8 @@ serial log alone identifies the image. `heater_capability` and
 3. Add `sdkconfig.defaults.<name>` that selects the profile and nothing else.
 4. Compile its code only under `DB_EXPERIMENT_<NAME>`, and put testable logic in
    `firmware/common` behind a hardware seam, with native tests.
-5. Add it to `ci/build-esp32s3.sh` (`all_experiments`, the symbols that must be
+5. Add it to `ci/build-firmware.sh` (`all_experiments`, each supporting
+   board's `experiments`, the symbols that must be
    absent elsewhere, and its wiring settings) and to CI.
 6. Extend `measurement_provenance` with exactly what it measures, derives, or
    relies on externally.

@@ -25,6 +25,11 @@ the N8R8 module (8 MB flash, Octal SPI PSRAM, CH343P USB-UART bridge; the
 default), the N16R8 module on a Lonely Binary carrier (16 MB flash, Octal SPI
 PSRAM, onboard RGB LED on GPIO48), and the Unexpected Maker TinyS3[D] (8 MB
 flash, Quad SPI PSRAM, native USB Serial/JTAG, onboard/U.FL RF switch).
+A fourth, **provisional** profile targets a second SoC: an ESP32-C5 carrier
+with an ESP32-C5-WROOM-1U module sold as N32R8 (`esp32c5-wroom1u-n32r8`),
+built with ESP-IDF 5.5.5 and so far build-verified only; its board facts are
+seller claims until physical bring-up
+([ESP32-C5 target](docs/TARGET_ESP32C5.md)).
 Each board's onboard RGB LED is DragonBench's status light: green when ready
 and idle, off at boot and throughout every run, and never available to
 fixture wiring. Browser and CLI clients use the same versioned HTTP/JSON API.
@@ -105,7 +110,7 @@ the matching DUT run: `sink` for `NET_TX`, `source` for `NET_RX`, or `echo` for
 python -m cli.dragonbench traffic-peer --port 5001 --mode echo --duration 60
 ```
 
-See [bench workflow](docs/BENCH_WORKFLOW.md), [target profile](docs/TARGET_ESP32S3.md),
+See [bench workflow](docs/BENCH_WORKFLOW.md), [target profile](docs/TARGET_ESP32S3.md), [ESP32-C5 target](docs/TARGET_ESP32C5.md),
 [experiment profiles](docs/EXPERIMENT_PROFILES.md), [fan characterization](docs/FAN_CHARACTERIZATION.md),
 and [protocol contract](protocol/openapi.yaml).
 
