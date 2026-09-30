@@ -10,7 +10,7 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).parents[1]
-KCONFIG = ROOT / "firmware/targets/esp32s3/main/Kconfig.projbuild"
+KCONFIG = ROOT / "firmware/main/Kconfig.projbuild"
 EXPERIMENT_H = ROOT / "firmware/common/include/db_experiment.h"
 EXPECTED = {"DB_EXPERIMENT_BASELINE": "baseline",
             "DB_EXPERIMENT_FAN_CHARACTERIZATION": "fan-characterization"}

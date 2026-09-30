@@ -10,9 +10,9 @@ has three deliberately narrow boundaries:
   holds the fan-characterization stimulus lifecycle, gate-polarity mapping, and
   tach arithmetic behind a small pad-level seam, so release-on-every-path and
   both stage polarities are host-tested.
-- `firmware/targets/esp32s3`: direct ESP-IDF implementations for Wi-Fi, mDNS,
+- `firmware/main`: direct ESP-IDF implementations for Wi-Fi, mDNS,
   HTTP, reset reason, SoC temperature, NVS, flash, inactive-OTA writes, reboot,
-  and TCP traffic. No other target backend exists. `fan_characterization.c`
+  and TCP traffic. `fan_characterization.c`
   (static gate drive, LEDC stimulus, PCNT tach) compiles only into the
   fan-characterization experiment profile; see
   [fan characterization](FAN_CHARACTERIZATION.md). `build_provenance.cmake`

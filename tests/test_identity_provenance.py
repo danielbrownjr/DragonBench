@@ -11,8 +11,8 @@ from pathlib import Path
 from cli.dragonbench.main import execute, parser
 
 ROOT = Path(__file__).parents[1]
-MAIN_C = ROOT / "firmware/targets/esp32s3/main/main.c"
-PROVENANCE_CMAKE = ROOT / "firmware/targets/esp32s3/main/build_provenance.cmake"
+MAIN_C = ROOT / "firmware/main/main.c"
+PROVENANCE_CMAKE = ROOT / "firmware/main/build_provenance.cmake"
 
 
 def _function_body(source, signature):
@@ -39,7 +39,7 @@ class IdentityTests(unittest.TestCase):
         self.assertIn('emit_event("boot", NULL, prior_run, NULL, image, NULL);', source)
 
     def test_provenance_header_is_regenerated_every_build(self):
-        cmake = (ROOT / "firmware/targets/esp32s3/main/CMakeLists.txt").read_text()
+        cmake = (ROOT / "firmware/main/CMakeLists.txt").read_text()
         self.assertIn("add_custom_target(db_build_provenance", cmake)
         self.assertIn("add_dependencies(${COMPONENT_LIB} db_build_provenance)", cmake)
         self.assertIn('#include "db_build_provenance.h"', MAIN_C.read_text())

@@ -22,7 +22,7 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).parents[1]
-MAIN_C = ROOT / "firmware/targets/esp32s3/main/main.c"
+MAIN_C = ROOT / "firmware/main/main.c"
 
 # Calls that transmit, receive or otherwise block on the network.
 BLOCKING_CALLS = (

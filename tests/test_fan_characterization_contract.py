@@ -14,10 +14,10 @@ from pathlib import Path
 from cli.dragonbench import main as cli
 
 ROOT = Path(__file__).parents[1]
-MAIN_C = ROOT / "firmware/targets/esp32s3/main/main.c"
-FIXTURE_C = ROOT / "firmware/targets/esp32s3/main/fan_characterization.c"
+MAIN_C = ROOT / "firmware/main/main.c"
+FIXTURE_C = ROOT / "firmware/main/fan_characterization.c"
 DB_FAN_H = ROOT / "firmware/common/include/db_fan.h"
-KCONFIG = ROOT / "firmware/targets/esp32s3/main/Kconfig.projbuild"
+KCONFIG = ROOT / "firmware/main/Kconfig.projbuild"
 
 
 def _read(path):

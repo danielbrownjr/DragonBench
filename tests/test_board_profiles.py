@@ -17,8 +17,8 @@ from pathlib import Path
 import test_experiment_profiles as profiles
 
 ROOT = Path(__file__).parents[1]
-KCONFIG = ROOT / "firmware/targets/esp32s3/main/Kconfig.projbuild"
-FIXTURE_C = ROOT / "firmware/targets/esp32s3/main/fan_characterization.c"
+KCONFIG = ROOT / "firmware/main/Kconfig.projbuild"
+FIXTURE_C = ROOT / "firmware/main/fan_characterization.c"
 
 EXPECTED = {
     # board: (CONFIG_DB_TARGET_NAME, flash size, PSRAM mode, RF-switch GPIO,

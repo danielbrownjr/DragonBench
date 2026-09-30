@@ -11,9 +11,9 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).parents[1]
-MAIN_C = ROOT / "firmware/targets/esp32s3/main/main.c"
-DRIVER_C = ROOT / "firmware/targets/esp32s3/main/status_rgb.c"
-KCONFIG = ROOT / "firmware/targets/esp32s3/main/Kconfig.projbuild"
+MAIN_C = ROOT / "firmware/main/main.c"
+DRIVER_C = ROOT / "firmware/main/status_rgb.c"
+KCONFIG = ROOT / "firmware/main/Kconfig.projbuild"
 
 
 def _function_body(source, signature):
@@ -39,7 +39,7 @@ class LifecycleTests(unittest.TestCase):
         for workload in ("static bool run_cpu", "static bool run_network", "static bool run_nvs",
                          "static bool partition_cycle", "static bool wait_abortable"):
             self.assertNotIn("status_", _function_body(self.main, workload), workload)
-        self.assertNotIn("status_", (ROOT / "firmware/targets/esp32s3/main/fan_characterization.c").read_text())
+        self.assertNotIn("status_", (ROOT / "firmware/main/fan_characterization.c").read_text())
 
     def test_every_sync_runs_under_state_lock(self):
         calls = [m.start() for m in re.finditer(r"status_sync_locked\(\);", self.main)]

@@ -34,7 +34,7 @@ frequency, PPR, or production GPIO.
 | `DB_EXPERIMENT_FAN_CHARACTERIZATION` choice entry and wiring options | `Kconfig.projbuild`, `sdkconfig.defaults.fan-characterization` |
 | `FAN_PWM_HOLD` workload | `firmware/common/db_run.c` (registry, validation) |
 | Stimulus lifecycle and tach arithmetic, host-tested | `firmware/common/db_fan.c` |
-| Static gate drive, LEDC stimulus, and PCNT tach capture | `firmware/targets/esp32s3/main/fan_characterization.c` |
+| Static gate drive, LEDC stimulus, and PCNT tach capture | `firmware/main/fan_characterization.c` |
 | `fan-sweep` host command | `cli/dragonbench/main.py` |
 
 Every other profile, including `baseline`, reports `FAN_PWM_HOLD` as

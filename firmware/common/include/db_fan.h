@@ -7,7 +7,7 @@
 //
 // Everything here is platform-neutral so the stimulus lifecycle and the tach
 // arithmetic are testable on a host. GPIO and peripheral access lives only in
-// firmware/targets/esp32s3/main/fan_characterization.c, behind db_fan_ops_t,
+// firmware/main/fan_characterization.c, behind db_fan_ops_t,
 // and is compiled only into the fan-characterization experiment profile.
 
 #include <stdbool.h>
