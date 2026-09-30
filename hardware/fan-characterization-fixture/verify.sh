@@ -4,8 +4,9 @@
 #   ./verify.sh            check: the checked-in .kicad_sch/.kicad_pro are exactly what
 #                          generator/ produces, ERC is clean, and the extracted netlist
 #                          matches generator/fixture.py and generator/expected-nets.txt
-#   ./verify.sh --update   regenerate .kicad_sch, .kicad_pro, .pdf and .svg in place,
-#                          then run the same checks
+#   ./verify.sh --update   regenerate .kicad_sch, .kicad_pro, .pdf and .svg, run the same
+#                          checks on the regenerated files, and copy them into place only
+#                          if every check passes; on any failure the fixture is unchanged
 #
 # Everything runs inside one pinned KiCad 9 image, so the generator reads the same
 # symbol libraries that ERC checks against. ERC report and netlist go to a temporary
@@ -36,15 +37,15 @@ docker run --rm --network none -u "$(id -u):$(id -g)" \
     kicad-cli version | sed "s/^/kicad-cli /"
     mkdir -p /out/gen
     cd /fixture/generator && PYTHONDONTWRITEBYTECODE=1 python3 build_schematic.py /out/gen
-    if [ "$MODE" = update ]; then
-      cp /out/gen/$NAME.kicad_sch /out/gen/$NAME.kicad_pro /fixture/
-    else
+    if [ "$MODE" = check ]; then
       for f in $NAME.kicad_sch $NAME.kicad_pro; do
         cmp -s /out/gen/$f /fixture/$f || { echo "STALE: $f differs from generator output (run ./verify.sh --update)"; exit 1; }
       done
       echo "generator: checked-in $NAME.kicad_sch and $NAME.kicad_pro reproduce byte for byte"
     fi
-    cd /fixture
+    # Every check runs on the generated copy in /out/gen. In check mode it is byte-identical
+    # to the checked-in files (compared above); in update mode it is what will be copied in.
+    cd /out/gen
     kicad-cli sch erc --severity-all --format report -o /out/erc.rpt $NAME.kicad_sch >/dev/null
     grep "ERC messages" /out/erc.rpt | sed "s/^ *\*\* /ERC: /"
     grep -q "ERC messages: 0  Errors 0  Warnings 0" /out/erc.rpt || { cat /out/erc.rpt; exit 1; }
@@ -52,6 +53,10 @@ docker run --rm --network none -u "$(id -u):$(id -g)" \
     python3 /fixture/generator/check_netlist.py /out/netlist.xml /out/gen/intent.json /fixture/generator/expected-nets.txt
     kicad-cli sch export pdf -o /out/$NAME.pdf $NAME.kicad_sch >/dev/null
     kicad-cli sch export svg -o /out $NAME.kicad_sch >/dev/null
-    if [ "$MODE" = update ]; then cp /out/$NAME.pdf /out/$NAME.svg /fixture/; echo "updated: .kicad_sch .kicad_pro .pdf .svg"; fi
+    # Reached only when every check above passed (bash -e): now update the fixture.
+    if [ "$MODE" = update ]; then
+      cp /out/gen/$NAME.kicad_sch /out/gen/$NAME.kicad_pro /out/$NAME.pdf /out/$NAME.svg /fixture/
+      echo "updated: .kicad_sch .kicad_pro .pdf .svg"
+    fi
   '
 echo "validation output: $OUT (erc.rpt, netlist.xml, $NAME.pdf, $NAME.svg)"

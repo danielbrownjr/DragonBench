@@ -37,6 +37,10 @@ class StringEscapeTests(unittest.TestCase):
     def test_unknown_escape_is_kept_as_written(self):
         self.assertEqual(sexp.parse(r'"a\xb"'), ["a\\xb"])
 
+    def test_unknown_escape_is_dumped_with_its_backslash_escaped(self):
+        # parse() keeps the backslash as text, so q() escapes it on the way out.
+        self.assertEqual(sexp.dump(sexp.parse(r'"a\xb"')[0]), r'"a\\xb"')
+
 
 if __name__ == "__main__":
     unittest.main()

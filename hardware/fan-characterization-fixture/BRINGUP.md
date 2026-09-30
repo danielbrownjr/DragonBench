@@ -111,8 +111,9 @@ calculated current was ≤ 2 mA.
 
 ## 7. Validate the open-drain PWM stage
 
-1. With the controller still off J1 and JP2 open, drive TP3 (`PWM_IN`) from
-   a signal generator:
+1. Keep the controller's 3V3 on from step 6 (operating rule), but leave its
+   PWM output unconnected: J1.1 (`MCU_PWM`) stays unwired and JP1 open until
+   item 5. With JP2 open, drive TP3 (`PWM_IN`) from a signal generator:
    - 0–3.3 V square wave
    - 25 kHz, the drawing's specified control frequency
 2. Scope TP4 and TP5. Then close JP2 and scope TP6. Record:
