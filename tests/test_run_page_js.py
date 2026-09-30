@@ -62,6 +62,9 @@ function page(device) {
             reject(Object.assign(new Error('The operation was aborted.'), { name: 'AbortError' }));
           });
         }) });
+      // Headers arrive but the connection drops while the body is read.
+      if (r && r.dropBody) return Promise.resolve({ ok: r.code >= 200 && r.code < 300, status: r.code,
+        json: () => Promise.reject(new TypeError('network error')) });
       // A complete response whose body is not JSON.
       if (r && r.badJson) return Promise.resolve({ ok: r.code >= 200 && r.code < 300, status: r.code,
         json: () => Promise.reject(new SyntaxError('Unexpected end of JSON input')) });
@@ -275,6 +278,26 @@ function device(status) { return { status, workloads: WORKLOADS, post: null, abo
     d.status = st('aborting', 'IDLE', 'r14', 'none');
     await p.elapse(4000); s.push(p.snap());
     out.abort_body_stall = { snaps: s, post: p.posts[0] };
+  }
+  { // start refused (409 headers) but the body stalls until the timeout
+    const d = device(IDLE); const p = page(d); await p.tick(0);
+    d.post = { code: 409, stallBody: true };
+    await p.click('NVS_WRITE'); const s = [p.snap()];
+    await p.elapse(4000); s.push(p.snap());
+    out.start_409_stall = { snaps: s, post: p.posts[0] };
+  }
+  { // abort refused (409 headers) but the body stalls until the timeout
+    const d = device(st('running', 'IDLE', 'r16', 'none')); const p = page(d); await p.tick(0);
+    d.abort = { code: 409, stallBody: true };
+    await p.abort(); const s = [p.snap()];
+    await p.elapse(4000); s.push(p.snap());
+    out.abort_409_stall = { snaps: s, post: p.posts[0] };
+  }
+  { // start accepted (201 headers) but the connection drops during the body
+    const d = device(IDLE); const p = page(d); await p.tick(0);
+    d.post = { code: 201, dropBody: true };
+    await p.click('IDLE');
+    out.start_body_drop = p.snap();
   }
   { // a complete response that is not JSON still falls back to an empty payload
     const d = device(IDLE); const p = page(d); await p.tick(0);
@@ -531,33 +554,73 @@ class RunPageBehaviourTests(unittest.TestCase):
             self.assertEqual(snap["pendingTimers"], [], snap)
             self.assertEqual(snap["abortedPosts"], 0, snap)
 
-    def test_start_body_stall_times_out_instead_of_reading_as_refused(self):
+    def test_start_201_body_stall_keeps_the_acknowledgement_without_a_run_id(self):
         t = self.out["start_body_stall"]
         starting, timed_out = t["snaps"]
         self.assertTrue(t["post"]["bodyStarted"])
         self.assertEqual(starting["status"], "starting")
         self.assertTrue(t["post"]["aborted"])
-        self.assertIn("No response to the start request", timed_out["message"])
-        self.assertNotIn("Refused", timed_out["message"])
-        self.assertNotIn("HTTP 201", timed_out["message"])
+        message = timed_out["message"]
+        self.assertIn("acknowledged", message)
+        self.assertIn("HTTP 201", message)
+        self.assertIn("run ID is unknown", message)
+        self.assertNotIn("No response", message)
+        self.assertNotIn("Refused", message)
         self.assertNotEqual(timed_out["status"], "starting")
         self.assertGreater(timed_out["statusGets"], starting["statusGets"])
+        # RUNNING and the run ID come from the status poll, not from the 201.
         self.assertEqual(timed_out["status"], "running")
         self.assertEqual(timed_out["id"], "r13")
 
-    def test_abort_body_stall_times_out_instead_of_reading_as_requested(self):
+    def test_start_201_body_drop_does_not_infer_running(self):
+        snap = self.out["start_body_drop"]
+        self.assertIn("HTTP 201", snap["message"])
+        self.assertIn("run ID is unknown", snap["message"])
+        self.assertNotIn("Refused", snap["message"])
+        self.assertEqual(snap["state"], "READY")
+        self.assertEqual(snap["id"], "—")
+
+    def test_abort_200_body_stall_keeps_the_acknowledgement(self):
         t = self.out["abort_body_stall"]
         requested, timed_out = t["snaps"]
         self.assertTrue(t["post"]["bodyStarted"])
         self.assertTrue(requested["abortDisabled"])
         self.assertTrue(t["post"]["aborted"])
-        self.assertIn("No response to the abort request", timed_out["message"])
-        self.assertNotIn("Abort requested", timed_out["message"])
+        message = timed_out["message"]
+        self.assertIn("acknowledged", message)
+        self.assertIn("HTTP 200", message)
+        self.assertIn("r14", message)
+        self.assertNotIn("No response", message)
+        self.assertNotIn("ABORTED", message)
         self.assertFalse(timed_out["abortDisabled"])
         self.assertGreater(timed_out["statusGets"], requested["statusGets"])
+        # ABORTING comes from the status poll; ABORTED is never inferred.
         self.assertEqual(timed_out["status"], "aborting")
-        self.assertNotEqual(timed_out["status"], "aborted")
         self.assertTrue(timed_out["abortHidden"])
+
+    def test_start_409_body_stall_keeps_the_refusal(self):
+        t = self.out["start_409_stall"]
+        starting, timed_out = t["snaps"]
+        self.assertTrue(t["post"]["aborted"])
+        message = timed_out["message"]
+        self.assertIn("Refused by the device (HTTP 409)", message)
+        self.assertIn("reason is unavailable", message)
+        self.assertNotIn("No response", message)
+        self.assertEqual(timed_out["state"], "READY")
+        self.assertButtons(timed_out, False)
+        self.assertGreater(timed_out["statusGets"], starting["statusGets"])
+
+    def test_abort_409_body_stall_keeps_the_refusal(self):
+        t = self.out["abort_409_stall"]
+        requested, timed_out = t["snaps"]
+        self.assertTrue(t["post"]["aborted"])
+        message = timed_out["message"]
+        self.assertIn("Abort refused (HTTP 409)", message)
+        self.assertIn("reason is unavailable", message)
+        self.assertNotIn("No response", message)
+        self.assertEqual(timed_out["status"], "running")
+        self.assertFalse(timed_out["abortDisabled"])
+        self.assertGreater(timed_out["statusGets"], requested["statusGets"])
 
     def test_non_json_reply_still_reports_the_http_status(self):
         start, abort = self.out["bad_json"]
