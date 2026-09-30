@@ -5,6 +5,8 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  # Manual runs of the same jobs on any branch, e.g. a stacked branch without a PR.
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -48,10 +50,21 @@ jobs:
           target: esp32c5
           path: .
           command: bash ci/build-firmware.sh esp32c5 ${{ matrix.profile }} baseline
-      - name: Show the ESP32-C5 Component Manager lockfile
+      - name: Show the ESP32-C5 Component Manager lockfile and build provenance
         # dependencies.lock.esp32c5 is not committed yet: it has to be resolved
         # against the component registry (docs/TARGET_ESP32C5.md).
-        run: cat dependencies.lock.esp32c5 || true
+        if: always()
+        run: |
+          cat dependencies.lock.esp32c5 || true
+          git status --porcelain
+          find build -name db_build_provenance.h -exec cat {} \;
+      - name: Upload the ESP32-C5 Component Manager lockfile
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: esp32c5-dependencies-lock
+          path: dependencies.lock.esp32c5
+          if-no-files-found: warn
 
   fan-characterization-configured:
     name: ESP-IDF 5.3.5 / ESP32-S3 ${{ matrix.board }} / fan-characterization (compile fixture)
