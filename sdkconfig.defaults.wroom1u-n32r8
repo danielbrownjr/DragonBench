@@ -1,0 +1,20 @@
+# PROVISIONAL board profile: an ESP32-C5 carrier sold as "ESP32-C5 WiFi6
+# development board" with an ESP32-C5-WROOM-1U module, 32 MB flash, 8 MB PSRAM
+# and an external antenna. Everything board-specific here comes from the
+# seller listing and pinout image, not from a schematic or the physical board
+# (docs/TARGET_ESP32C5.md). No status RGB LED, RF switch, or fixture pins are
+# claimed: none is established for this carrier.
+# Build with:
+#   bash ci/build-firmware.sh esp32c5 wroom1u-n32r8
+CONFIG_DB_TARGET_NAME="esp32c5-wroom1u-n32r8"
+CONFIG_DB_BOARD_PROFILE_PROVISIONAL=y
+# Reported as memory.board_claim, never as measured size. The image header
+# keeps the shared 8 MB flash size (sdkconfig.defaults): a smaller real chip
+# would otherwise fail the flash size check at boot, and the partition table
+# ends below 8 MB anyway. memory.flash.detected_bytes measures the real chip.
+CONFIG_DB_BOARD_FLASH_CLAIM_MB=32
+CONFIG_DB_BOARD_PSRAM_CLAIM_MB=8
+CONFIG_DB_BOARD_MEMORY_CLAIM_SOURCE="expected_from_seller"
+# Boot and report memory.psram.detected_bytes 0 instead of panicking if the
+# claimed PSRAM is absent or fails to initialize.
+CONFIG_SPIRAM_IGNORE_NOTFOUND=y

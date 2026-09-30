@@ -28,6 +28,31 @@ jobs:
           path: .
           command: bash ci/build-esp32s3.sh ${{ matrix.profile }} baseline
 
+  esp32c5-build:
+    # ESP32-C5 is only a preview target before ESP-IDF 5.5.1, so it builds in
+    # its own ESP-IDF 5.5.5 lane; the ESP32-S3 jobs stay on 5.3.5. The board
+    # profile is provisional (docs/TARGET_ESP32C5.md).
+    name: ESP-IDF 5.5.5 / ESP32-C5 ${{ matrix.profile }} / baseline
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [wroom1u-n32r8]
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Clean configure and build
+        uses: espressif/esp-idf-ci-action@v1
+        with:
+          esp_idf_version: v5.5.5
+          target: esp32c5
+          path: .
+          command: bash ci/build-firmware.sh esp32c5 ${{ matrix.profile }} baseline
+      - name: Show the ESP32-C5 Component Manager lockfile
+        # dependencies.lock.esp32c5 is not committed yet: it has to be resolved
+        # against the component registry (docs/TARGET_ESP32C5.md).
+        run: cat dependencies.lock.esp32c5 || true
+
   fan-characterization-configured:
     name: ESP-IDF 5.3.5 / ESP32-S3 ${{ matrix.board }} / fan-characterization (compile fixture)
     runs-on: ubuntu-latest

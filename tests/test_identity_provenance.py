@@ -33,8 +33,8 @@ class IdentityTests(unittest.TestCase):
 
     def test_boot_event_carries_image_identity(self):
         source = MAIN_C.read_text()
-        boot = source[source.index("char image[192];"):source.index('emit_event("boot"')]
-        for field in ("board_profile", "experiment_profile", "git_sha", "source_tree"):
+        boot = source[source.index("char image[224];"):source.index('emit_event("boot"')]
+        for field in ("soc_target", "board_profile", "experiment_profile", "git_sha", "source_tree"):
             self.assertIn(field, boot)
         self.assertIn('emit_event("boot", NULL, prior_run, NULL, image, NULL);', source)
 
@@ -94,10 +94,25 @@ class BuildProvenanceScriptTests(unittest.TestCase):
             self.assertEqual(self.run_script(plain, header), ("", "unknown"))
 
 
+SOC_HEADERS = {target: ROOT / f"firmware/targets/{target}/include/db_soc.h" for target in ("esp32s3", "esp32c5")}
+
+
+def soc_defines(target):
+    """String #defines of one SoC target layer header, name -> value."""
+    return dict(re.findall(r'^#define (DB_SOC_\w+) "([^"]*)"$', SOC_HEADERS[target].read_text(), re.M))
+
+
 class MeasurementProvenanceTests(unittest.TestCase):
     def setUp(self):
         self.body = _function_body(MAIN_C.read_text(), "static void add_measurement_provenance")
         self.pairs = re.findall(r'cJSON_AddStringToObject\(m, "(\w+)",\s*"([^"]+)"\)', self.body)
+        # Sources named by the SoC target layer, resolved per target.
+        self.soc_pairs = re.findall(r'cJSON_AddStringToObject\(m, "(\w+)",\s*(DB_SOC_\w+)\)', self.body)
+
+    def sources(self, target):
+        defines = soc_defines(target)
+        resolved = {q: defines.get(macro) for q, macro in self.soc_pairs}
+        return {**dict(self.pairs), **resolved}
 
     def test_measurement_authority_claim_is_gone(self):
         for path in (MAIN_C, ROOT / "web/index.html", ROOT / "protocol/openapi.yaml"):
@@ -105,15 +120,25 @@ class MeasurementProvenanceTests(unittest.TestCase):
 
     def test_every_source_is_dut_derived_or_external(self):
         for quantity, source in self.pairs:
-            self.assertRegex(source, r"^(external|dut\.esp32s3_\w+|derived\.\w+)$", quantity)
+            self.assertRegex(source, r"^(external|derived\.\w+)$", quantity)
+        for target in SOC_HEADERS:
+            for quantity, macro in self.soc_pairs:
+                if quantity.startswith("fan_") and target != "esp32s3":
+                    continue  # fan-characterization is ESP32-S3 only
+                self.assertRegex(self.sources(target)[quantity] or "", rf"^dut\.{target}_\w+$", (target, quantity))
         self.assertIn('"fan_speed",\n                            fan_characterization_ppr() ? '
                       '"derived.fan_tach_edges_and_configured_ppr" : "external"', self.body)
 
     def test_dut_claims_match_what_firmware_acquires(self):
-        sources = dict(self.pairs)
+        sources = self.sources("esp32s3")
         self.assertEqual(sources["soc_temperature"], "dut.esp32s3_temperature_sensor")
         self.assertEqual(sources["wifi_rssi"], "dut.esp32s3_wifi")
         self.assertEqual(sources["fan_tach_edges"], "dut.esp32s3_pcnt")
+        c5 = self.sources("esp32c5")
+        self.assertEqual(c5["soc_temperature"], "dut.esp32c5_temperature_sensor")
+        self.assertEqual(c5["wifi_rssi"], "dut.esp32c5_wifi")
+        # No ESP32-C5 fixture backend exists, so it names no PCNT source.
+        self.assertIsNone(c5["fan_tach_edges"])
         for external in ("supply_voltage", "supply_current", "rail_voltage", "reset_and_brownout",
                          "fan_airflow", "fan_temperature", "fan_supply_current", "fan_supply_voltage",
                          "fan_pwm_line_waveform"):

@@ -19,6 +19,15 @@ int main(void) {
     assert(!db_sta_is_configured(NULL));
     assert(!db_sta_is_configured(""));
     assert(db_sta_is_configured("synthetic-lab-network"));
+    assert(strcmp(db_wifi_band_name(0), "unknown") == 0);
+    assert(strcmp(db_wifi_band_name(1), "2.4GHz") == 0);
+    assert(strcmp(db_wifi_band_name(14), "2.4GHz") == 0);
+    assert(strcmp(db_wifi_band_name(15), "unknown") == 0);
+    assert(strcmp(db_wifi_band_name(31), "unknown") == 0);
+    assert(strcmp(db_wifi_band_name(36), "5GHz") == 0);
+    assert(strcmp(db_wifi_band_name(165), "5GHz") == 0);
+    assert(strcmp(db_wifi_band_name(177), "5GHz") == 0);
+    assert(strcmp(db_wifi_band_name(178), "unknown") == 0);
     assert(strcmp(db_ap_state_name(DB_AP_STARTING), "starting") == 0);
     assert(strcmp(db_ap_state_name(DB_AP_ACTIVE), "active") == 0);
     assert(strcmp(db_ap_state_name(DB_AP_FAILED), "failed") == 0);

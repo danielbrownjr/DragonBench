@@ -243,7 +243,7 @@ class ContractTests(unittest.TestCase):
         schema = json.loads((ROOT / "protocol/event.schema.json").read_text())
         targets = schema["properties"]["target"]["enum"]
         kconfig = (ROOT / "firmware/main/Kconfig.projbuild").read_text()
-        base = (ROOT / "sdkconfig.defaults").read_text()
+        base = (ROOT / "sdkconfig.defaults.esp32s3").read_text()
         tinys3d = (ROOT / "sdkconfig.defaults.tinys3d").read_text()
         default_target = re.search(r'config DB_TARGET_NAME\n(?:.*\n)*?\s+default "([^"]+)"', kconfig).group(1)
         self.assertEqual(default_target, "esp32s3-n8r8")

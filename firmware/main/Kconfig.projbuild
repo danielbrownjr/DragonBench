@@ -18,21 +18,51 @@ config DB_FIRMWARE_VERSION
     string "Firmware version"
     default "0.1.0"
 config DB_TARGET_NAME
-    string "Target identifier reported in events and /api/v1/device"
-    default "esp32s3-n8r8"
+    string "Board profile identifier reported in events and /api/v1/device"
+    default "esp32s3-n8r8" if IDF_TARGET_ESP32S3
+    default ""
     help
-        Must be one of the target values in protocol/event.schema.json.
-        Set per board by the sdkconfig.defaults.<board> overlay.
+        "<soc target>-<board>", one of the target values in
+        protocol/event.schema.json. Set per board by the
+        sdkconfig.defaults.<board> overlay. Only ESP32-S3 has a default
+        board (N8R8); on any other SoC target an image without a board
+        overlay fails to configure instead of reporting another SoC's board.
+config DB_BOARD_PROFILE_PROVISIONAL
+    bool "Board profile is provisional (not yet validated on the physical board)"
+    default n
+    help
+        Set by a board profile built from seller or other secondary evidence
+        before bring-up on the physical board. Reported as
+        board_profile_provisional in /api/v1/device.
+config DB_BOARD_FLASH_CLAIM_MB
+    int "Flash size the board is claimed to have, MB (0: no claim)"
+    range 0 128
+    default 0
+    help
+        A claim, not a measurement: reported under memory.board_claim with
+        DB_BOARD_MEMORY_CLAIM_SOURCE, next to the size the image measures.
+config DB_BOARD_PSRAM_CLAIM_MB
+    int "PSRAM size the board is claimed to have, MB (0: no claim)"
+    range 0 32
+    default 0
+config DB_BOARD_MEMORY_CLAIM_SOURCE
+    string "Evidence behind the board memory claim"
+    default ""
+    help
+        Required when either claim is non-zero, for example
+        "expected_from_seller".
 config DB_RF_SWITCH_GPIO
     int "Antenna RF-switch select GPIO (-1 if the board has none)"
-    range -1 48
+    range -1 48 if IDF_TARGET_ESP32S3
+    range -1 28 if IDF_TARGET_ESP32C5
     default -1
     help
         Driven low at boot to select the onboard antenna.
         TinyS3[D]: GPIO38 (high selects the external U.FL connector).
 config DB_STATUS_RGB_GPIO
     int "Onboard WS2812 status RGB LED data GPIO (-1 if the board has none)"
-    range -1 48
+    range -1 48 if IDF_TARGET_ESP32S3
+    range -1 28 if IDF_TARGET_ESP32C5
     default -1
     help
         Board-owned: DragonBench drives this LED as its status light (solid
@@ -42,7 +72,8 @@ config DB_STATUS_RGB_GPIO
         N8R8 and N16R8: GPIO48. TinyS3[D]: GPIO18.
 config DB_STATUS_RGB_POWER_GPIO
     int "GPIO that powers the status RGB LED (-1 if it is always powered)"
-    range -1 48
+    range -1 48 if IDF_TARGET_ESP32S3
+    range -1 28 if IDF_TARGET_ESP32C5
     default -1
     help
         Board-owned like DB_STATUS_RGB_GPIO. The LED is unpowered whenever
@@ -66,8 +97,8 @@ choice DB_EXPERIMENT_PROFILE
 config DB_EXPERIMENT_BASELINE
     bool "baseline: module workloads only, no fixture I/O"
     help
-        The ESP32-S3 module characterization workloads. No stimulus or
-        acquisition hardware beyond the module itself.
+        The module characterization workloads. No stimulus or acquisition
+        hardware beyond the module itself.
 
 config DB_EXPERIMENT_FAN_CHARACTERIZATION
     bool "fan-characterization: bench PWM stimulus + tach (NOT product fan control)"
@@ -78,7 +109,8 @@ config DB_EXPERIMENT_FAN_CHARACTERIZATION
         counts tach edges. No closed loop, no thresholds, no heater, and no
         product fan-control or safety policy. Select it with
         sdkconfig.defaults.fan-characterization plus a local overlay that
-        states the wired GPIOs. See docs/FAN_CHARACTERIZATION.md.
+        states the wired GPIOs. ESP32-S3 only: no other SoC target has
+        reviewed fixture pin guards. See docs/FAN_CHARACTERIZATION.md.
 
 endchoice
 
@@ -86,7 +118,8 @@ if DB_EXPERIMENT_FAN_CHARACTERIZATION
 menu "Fan-characterization fixture wiring"
 config DB_FAN_PWM_GATE_GPIO
     int "Stimulus gate GPIO (-1: unset, build fails)"
-    range -1 48
+    range -1 48 if IDF_TARGET_ESP32S3
+    range -1 28 if IDF_TARGET_ESP32C5
     default -1
     help
         GPIO wired to the gate/base of the external open-drain stage. It
@@ -102,7 +135,8 @@ config DB_FAN_GATE_SINK_LEVEL
         the release level used at boot, run end, abort, and every error.
 config DB_FAN_TACH_GPIO
     int "Conditioned tach input GPIO (-1: unset, build fails)"
-    range -1 48
+    range -1 48 if IDF_TARGET_ESP32S3
+    range -1 28 if IDF_TARGET_ESP32C5
     default -1
     help
         GPIO receiving the tach signal after the fixture's pull-up/level

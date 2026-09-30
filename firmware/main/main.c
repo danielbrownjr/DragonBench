@@ -12,18 +12,23 @@
 #include "db_fan.h"
 #include "db_network.h"
 #include "db_run.h"
+#include "db_soc.h"
 #include "fan_characterization.h"
 #include "status_rgb.h"
 #include "driver/gpio.h"
 #include "driver/temperature_sensor.h"
 #include "esp_attr.h"
 #include "esp_event.h"
+#include "esp_flash.h"
 #include "esp_http_server.h"
 #include "esp_netif.h"
 #include "esp_log.h"
 #include "esp_mac.h"
 #include "esp_ota_ops.h"
 #include "esp_partition.h"
+#if CONFIG_SPIRAM
+#include "esp_psram.h"
+#endif
 #include "esp_random.h"
 #include "esp_system.h"
 #include "esp_timer.h"
@@ -36,6 +41,7 @@
 #include "mdns.h"
 #include "nvs.h"
 #include "nvs_flash.h"
+#include "soc/soc_caps.h"
 
 #define TAG "dragonbench"
 #define JSON_BODY_MAX 1024
@@ -52,6 +58,10 @@ static db_ap_state_t ap_state = DB_AP_STARTING;
 static db_sta_state_t sta_state = DB_STA_UNCONFIGURED;
 static bool sta_configured;
 static int wifi_rssi;
+static unsigned sta_channel;
+#if SOC_WIFI_SUPPORT_5G
+static wifi_band_mode_t wifi_band_mode;
+#endif
 static unsigned ap_client_count;
 static unsigned sta_retry_count;
 static unsigned sta_last_reason;
@@ -73,6 +83,12 @@ static EventGroupHandle_t network_events;
 #define AP_START_TIMEOUT_MS 5000
 static temperature_sensor_handle_t temp_sensor;
 static bool temp_available;
+// Measured once at boot (see measure_memory).
+static bool flash_configured_known, flash_detected_known;
+static uint32_t flash_configured_bytes, flash_detected_bytes;
+#if CONFIG_SPIRAM
+static size_t psram_detected_bytes;
+#endif
 static char reset_reason_text[32];
 static char previous_reboot_run_id[DB_RUN_ID_LEN];
 static uint32_t boot_nonce;
@@ -87,6 +103,17 @@ static const char *run_state_name(db_run_state_t state) {
     static const char *const names[] = {"idle", "running", "aborting", "complete"};
     return state <= DB_RUN_COMPLETE ? names[state] : "unknown";
 }
+
+#if SOC_WIFI_SUPPORT_5G
+static const char *band_mode_name(wifi_band_mode_t mode) {
+    switch (mode) {
+        case WIFI_BAND_MODE_2G_ONLY: return "2.4GHz";
+        case WIFI_BAND_MODE_5G_ONLY: return "5GHz";
+        case WIFI_BAND_MODE_AUTO: return "auto";
+        default: return "unknown";
+    }
+}
+#endif
 
 static const char *reset_name(esp_reset_reason_t reason) {
     switch (reason) {
@@ -393,14 +420,14 @@ static esp_err_t send_json(httpd_req_t *req, cJSON *root, int status) {
 // experiment profile adds only what it actually acquires or needs.
 static void add_measurement_provenance(cJSON *parent) {
     cJSON *m = cJSON_AddObjectToObject(parent, "measurement_provenance");
-    cJSON_AddStringToObject(m, "soc_temperature", "dut.esp32s3_temperature_sensor");
-    cJSON_AddStringToObject(m, "wifi_rssi", "dut.esp32s3_wifi");
+    cJSON_AddStringToObject(m, "soc_temperature", DB_SOC_TEMPERATURE_SOURCE);
+    cJSON_AddStringToObject(m, "wifi_rssi", DB_SOC_WIFI_SOURCE);
     cJSON_AddStringToObject(m, "supply_voltage", "external");
     cJSON_AddStringToObject(m, "supply_current", "external");
     cJSON_AddStringToObject(m, "rail_voltage", "external");
     cJSON_AddStringToObject(m, "reset_and_brownout", "external");
 #if DB_EXPERIMENT_FAN_CHARACTERIZATION
-    cJSON_AddStringToObject(m, "fan_tach_edges", "dut.esp32s3_pcnt");
+    cJSON_AddStringToObject(m, "fan_tach_edges", DB_SOC_PCNT_SOURCE);
     cJSON_AddStringToObject(m, "fan_speed",
                             fan_characterization_ppr() ? "derived.fan_tach_edges_and_configured_ppr" : "external");
     cJSON_AddStringToObject(m, "fan_pwm_line_waveform", "external");
@@ -422,14 +449,62 @@ static void add_build(cJSON *parent) {
     cJSON_AddStringToObject(b, "esp_idf", esp_get_idf_version());
 }
 
+#if CONFIG_DB_BOARD_PROFILE_PROVISIONAL
+#define BOARD_PROFILE_PROVISIONAL true
+#else
+#define BOARD_PROFILE_PROVISIONAL false
+#endif
+_Static_assert((CONFIG_DB_BOARD_FLASH_CLAIM_MB == 0 && CONFIG_DB_BOARD_PSRAM_CLAIM_MB == 0) ||
+                   sizeof(CONFIG_DB_BOARD_MEMORY_CLAIM_SOURCE) > 1,
+               "a board memory claim needs CONFIG_DB_BOARD_MEMORY_CLAIM_SOURCE");
+
+// What the image measured at boot, apart from what the board is claimed to
+// have. configured_bytes is the flash size in the image header; detected_bytes
+// is the size the flash chip reports in its JEDEC ID. PSRAM detected_bytes is
+// 0 when PSRAM support is built in but no PSRAM initialized.
+static void add_memory(cJSON *parent) {
+    cJSON *m = cJSON_AddObjectToObject(parent, "memory");
+    cJSON *flash = cJSON_AddObjectToObject(m, "flash");
+    if (flash_configured_known) cJSON_AddNumberToObject(flash, "configured_bytes", flash_configured_bytes);
+    else cJSON_AddNullToObject(flash, "configured_bytes");
+    if (flash_detected_known) cJSON_AddNumberToObject(flash, "detected_bytes", flash_detected_bytes);
+    else cJSON_AddNullToObject(flash, "detected_bytes");
+    cJSON *psram = cJSON_AddObjectToObject(m, "psram");
+#if CONFIG_SPIRAM
+    cJSON_AddBoolToObject(psram, "enabled", true);
+    cJSON_AddNumberToObject(psram, "detected_bytes", (double)psram_detected_bytes);
+#else
+    cJSON_AddBoolToObject(psram, "enabled", false);
+    cJSON_AddNullToObject(psram, "detected_bytes");
+#endif
+#if CONFIG_DB_BOARD_FLASH_CLAIM_MB > 0 || CONFIG_DB_BOARD_PSRAM_CLAIM_MB > 0
+    // A board claim is never validated identity; the source says whose claim.
+    cJSON *claim = cJSON_AddObjectToObject(m, "board_claim");
+    cJSON_AddNumberToObject(claim, "flash_bytes", CONFIG_DB_BOARD_FLASH_CLAIM_MB * 1048576.0);
+    cJSON_AddNumberToObject(claim, "psram_bytes", CONFIG_DB_BOARD_PSRAM_CLAIM_MB * 1048576.0);
+    cJSON_AddStringToObject(claim, "source", CONFIG_DB_BOARD_MEMORY_CLAIM_SOURCE);
+#endif
+}
+
+static void measure_memory(void) {
+    flash_configured_known = esp_flash_get_size(NULL, &flash_configured_bytes) == ESP_OK;
+    flash_detected_known = esp_flash_get_physical_size(NULL, &flash_detected_bytes) == ESP_OK;
+#if CONFIG_SPIRAM
+    psram_detected_bytes = esp_psram_is_initialized() ? esp_psram_get_size() : 0;
+#endif
+}
+
 static cJSON *identity_json(void) {
     cJSON *o = cJSON_CreateObject();
     cJSON_AddStringToObject(o, "product", "DragonBench");
     cJSON_AddStringToObject(o, "target", CONFIG_DB_TARGET_NAME);
+    cJSON_AddStringToObject(o, "soc_target", DB_SOC_TARGET);
     cJSON_AddStringToObject(o, "board_profile", CONFIG_DB_TARGET_NAME);
+    cJSON_AddBoolToObject(o, "board_profile_provisional", BOARD_PROFILE_PROVISIONAL);
     cJSON_AddStringToObject(o, "experiment_profile", DB_EXPERIMENT_PROFILE_NAME);
     cJSON_AddStringToObject(o, "firmware_version", CONFIG_DB_FIRMWARE_VERSION);
     add_build(o);
+    add_memory(o);
     cJSON_AddStringToObject(o, "device_id", device_id);
     cJSON_AddStringToObject(o, "image_class", "characterization");
     // Product actuator capabilities are absent in every build, fixture included.
@@ -461,6 +536,10 @@ static esp_err_t status_get(httpd_req_t *req) {
     cJSON *network = cJSON_AddObjectToObject(o, "network");
     cJSON_AddStringToObject(network, "mode", sta_configured ? "apsta" : "ap");
     cJSON_AddStringToObject(network, "ap_state", db_ap_state_name(ap_state));
+#if SOC_WIFI_SUPPORT_5G
+    // The radio's band mode as ESP-IDF left it; DragonBench does not change it.
+    cJSON_AddStringToObject(network, "band_mode", band_mode_name(wifi_band_mode));
+#endif
     cJSON_AddBoolToObject(network, "ap_active", ap_state == DB_AP_ACTIVE);
     cJSON_AddStringToObject(network, "ap_ssid", ap_ssid);
     cJSON_AddStringToObject(network, "ap_ip", ap_ip);
@@ -472,7 +551,11 @@ static esp_err_t status_get(httpd_req_t *req) {
     cJSON_AddStringToObject(network, "sta_config_result", sta_config_result);
     cJSON_AddBoolToObject(network, "sta_configured", sta_configured);
     cJSON_AddBoolToObject(network, "sta_connected", sta_state == DB_STA_CONNECTED);
-    if (sta_state == DB_STA_CONNECTED) cJSON_AddStringToObject(network, "sta_ip", sta_ip);
+    if (sta_state == DB_STA_CONNECTED) {
+        cJSON_AddStringToObject(network, "sta_ip", sta_ip);
+        cJSON_AddNumberToObject(network, "sta_channel", sta_channel);
+        cJSON_AddStringToObject(network, "sta_band", db_wifi_band_name(sta_channel));
+    }
     char live_hostname[MDNS_NAME_BUF_LEN];
     if (!mdns_ready || mdns_hostname_get(live_hostname) != ESP_OK)
         snprintf(live_hostname, sizeof(live_hostname), "%s", mdns_hostname);
@@ -765,7 +848,7 @@ static const char landing[] =
 "  <div>"
 "    <p class=\"eyebrow\">Dragon-family characterization instrument</p>"
 "    <h1>DragonBench</h1>"
-"    <p class=\"lede\" data-role=\"identity\">Target: esp32s3-n8r8 &middot; Firmware: " CONFIG_DB_FIRMWARE_VERSION "</p>"
+"    <p class=\"lede\" data-role=\"identity\">Target: &mdash; &middot; Firmware: " CONFIG_DB_FIRMWARE_VERSION "</p>"
 "  </div>"
 "  <div class=\"api-status\" aria-label=\"API connection state\">"
 "    <span>API</span>"
@@ -958,7 +1041,7 @@ static const char setup_page[] =
 "<body>"
 "<main>"
 "  <h1>Wi-Fi setup</h1>"
-"  <p>Join this DragonBench to a 2.4 GHz network. The direct access point stays up, but may drop for a few seconds while the radio moves to the network's channel.</p>"
+"  <p>Join this DragonBench to a " DB_SOC_STA_BANDS_TEXT " network. The direct access point stays up, but may drop for a few seconds while the radio moves to the network's channel.</p>"
 "  <form class=\"panel\" data-role=\"sta-form\">"
 "    <label>Network name (SSID)<input data-role=\"sta-ssid\" maxlength=\"31\" required autocomplete=\"off\"></label>"
 "    <label>Password (blank for an open network)<input data-role=\"sta-password\" type=\"password\" maxlength=\"63\" autocomplete=\"off\"></label>"
@@ -1201,7 +1284,9 @@ static void wifi_event(void *arg, esp_event_base_t base, int32_t id, void *data)
         if (ap_client_count > 0) --ap_client_count;
     } else if (base == WIFI_EVENT && id == WIFI_EVENT_STA_CONNECTED) {
         wifi_event_sta_connected_t *event = data;
-        ESP_LOGI(TAG, "sta_associated channel=%u authmode=%d", event->channel, event->authmode);
+        sta_channel = event->channel;
+        ESP_LOGI(TAG, "sta_associated channel=%u band=%s authmode=%d", event->channel,
+                 db_wifi_band_name(event->channel), event->authmode);
     } else if (base == WIFI_EVENT && id == WIFI_EVENT_STA_DISCONNECTED) {
         wifi_event_sta_disconnected_t *event = data;
         sta_last_reason = event->reason;
@@ -1266,15 +1351,27 @@ static bool start_wifi(void) {
                                              pdMS_TO_TICKS(AP_START_TIMEOUT_MS));
     if ((ready & AP_STARTED_BIT) == 0 || ap_state != DB_AP_ACTIVE) return false;
     wifi_config_t observed = {0};
-    uint8_t primary = 0, protocol = 0;
+    uint8_t primary = 0;
     wifi_second_chan_t secondary = WIFI_SECOND_CHAN_NONE;
     int8_t tx_power = 0;
     if (esp_wifi_get_config(WIFI_IF_AP, &observed) != ESP_OK ||
         esp_wifi_get_channel(&primary, &secondary) != ESP_OK ||
-        esp_wifi_get_protocol(WIFI_IF_AP, &protocol) != ESP_OK ||
         esp_wifi_get_max_tx_power(&tx_power) != ESP_OK) return false;
+#if SOC_WIFI_SUPPORT_5G
+    // A dual-band radio may run in 2.4 GHz + 5 GHz band mode, where the
+    // single-band esp_wifi_get_protocol() is unsupported by design.
+    wifi_protocols_t protocols = {0};
+    if (esp_wifi_get_band_mode(&wifi_band_mode) != ESP_OK ||
+        esp_wifi_get_protocols(WIFI_IF_AP, &protocols) != ESP_OK) return false;
+    ESP_LOGI(TAG, "ap_config ssid_len=%u channel=%u auth=%d band_mode=%s protocol_2g=0x%02x protocol_5g=0x%02x tx_power_qdbm=%d",
+             observed.ap.ssid_len, primary, observed.ap.authmode, band_mode_name(wifi_band_mode),
+             protocols.ghz_2g, protocols.ghz_5g, tx_power);
+#else
+    uint8_t protocol = 0;
+    if (esp_wifi_get_protocol(WIFI_IF_AP, &protocol) != ESP_OK) return false;
     ESP_LOGI(TAG, "ap_config ssid_len=%u channel=%u auth=%d protocol=0x%02x tx_power_qdbm=%d",
              observed.ap.ssid_len, primary, observed.ap.authmode, protocol, tx_power);
+#endif
     return true;
 }
 
@@ -1292,6 +1389,7 @@ void app_main(void) {
 #endif
     status_rgb_init(); // off until the device is ready
     ESP_ERROR_CHECK(nvs_flash_init());
+    measure_memory();
     state_lock = xSemaphoreCreateMutex();
     boot_nonce = esp_random();
     const esp_reset_reason_t reset_reason = esp_reset_reason();
@@ -1308,10 +1406,10 @@ void app_main(void) {
     snprintf(reset_metrics, sizeof(reset_metrics), "{\"reason\":\"%s\"}", reset_reason_text);
     const char *prior_run = previous_reboot_run_id[0] ? previous_reboot_run_id : NULL;
     // Image identity in the first event, so a serial log alone names what ran.
-    char image[192];
+    char image[224];
     snprintf(image, sizeof(image),
-             "{\"board_profile\":\"%s\",\"experiment_profile\":\"%s\",\"git_sha\":%s%s%s,\"source_tree\":\"%s\"}",
-             CONFIG_DB_TARGET_NAME, DB_EXPERIMENT_PROFILE_NAME, DB_BUILD_GIT_SHA[0] ? "\"" : "",
+             "{\"soc_target\":\"%s\",\"board_profile\":\"%s\",\"experiment_profile\":\"%s\",\"git_sha\":%s%s%s,\"source_tree\":\"%s\"}",
+             DB_SOC_TARGET, CONFIG_DB_TARGET_NAME, DB_EXPERIMENT_PROFILE_NAME, DB_BUILD_GIT_SHA[0] ? "\"" : "",
              DB_BUILD_GIT_SHA[0] ? DB_BUILD_GIT_SHA : "null", DB_BUILD_GIT_SHA[0] ? "\"" : "", DB_BUILD_SOURCE_TREE);
     emit_event("boot", NULL, prior_run, NULL, image, NULL);
     emit_event("reset_reason", NULL, prior_run, NULL, NULL, reset_metrics);

@@ -35,10 +35,12 @@ def _kconfig_int_default(name):
     return int(re.search(rf"config {name}\n(?:.*\n)*?\s+default (-?\d+)", KCONFIG.read_text()).group(1))
 
 
-def resolved(board):
-    """Settings after layering the board's defaults files in order, as ESP-IDF does."""
+def resolved(board, target="esp32s3"):
+    """Settings after layering the board's defaults files in order, as ESP-IDF
+    does, including the SoC target's sdkconfig.defaults.<target>. Kconfig
+    defaults are filled in only for the board-owned GPIO settings."""
     settings = {}
-    for layer in profiles.board_profiles()[board]:
+    for layer in profiles.idf_layers(target, profiles.board_profiles(target)[board]):
         for line in (ROOT / layer).read_text().splitlines():
             unset = re.fullmatch(r"# (CONFIG_\w+) is not set", line)
             if unset:
@@ -84,13 +86,14 @@ class BoardProfileTests(unittest.TestCase):
         default = re.search(r'config DB_TARGET_NAME\n(?:.*\n)*?\s+default "([^"]+)"', KCONFIG.read_text()).group(1)
         self.assertEqual(default, "esp32s3-n8r8")
         self.assertEqual(profiles.board_profiles()["n8r8"], ["sdkconfig.defaults"])
+        self.assertEqual(resolved("n8r8").get("CONFIG_IDF_TARGET"), '"esp32s3"')
 
     def test_every_board_identity_is_a_protocol_target(self):
         schema = json.loads((ROOT / "protocol/event.schema.json").read_text())
         targets = schema["properties"]["target"]["enum"]
         openapi = re.search(r"board_profile: \{type: string, enum: \[([^\]]*)\]\}",
                             (ROOT / "protocol/openapi.yaml").read_text()).group(1)
-        expected = sorted(target for target, *_ in EXPECTED.values())
+        expected = sorted([target for target, *_ in EXPECTED.values()] + ["esp32c5-wroom1u-n32r8"])
         self.assertEqual(sorted(targets), expected)
         self.assertEqual(sorted(t.strip() for t in openapi.split(",")), expected)
         self.assertEqual(len(targets), len(set(targets)))

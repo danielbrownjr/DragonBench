@@ -81,7 +81,7 @@ class ProfileIsolationTests(unittest.TestCase):
         self.assertIn("return DB_EXPERIMENT_FAN_CHARACTERIZATION;", _read("firmware/common/db_run.c"))
 
     def test_ci_proves_absence_and_refusal(self):
-        script = _read("ci/build-esp32s3.sh")
+        script = _read("ci/build-firmware.sh")
         self.assertIn('[fan-characterization]="ledc_|pcnt_|fan_characterization_"', script)
         self.assertIn("links $other code", script)
         workflow = _read(".github/workflows/ci.yml")

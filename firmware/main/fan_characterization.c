@@ -10,6 +10,12 @@
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "db_soc.h"
+
+// The pin guards below are the reviewed ESP32-S3 map; no other SoC has one.
+#if !DB_SOC_FAN_FIXTURE_PIN_GUARDS
+#error "fan-characterization: not supported on this SoC target; its fixture pin guards cover ESP32-S3 only (docs/FAN_CHARACTERIZATION.md)"
+#else
 
 // The fixture wiring is bench hardware DragonBench cannot know. Nothing has a
 // usable default: an unconfigured fixture build fails here instead of guessing.
@@ -269,5 +275,7 @@ void fan_characterization_describe(cJSON *parent) {
 }
 
 #endif // fixture configured
+
+#endif // SoC has fixture pin guards
 
 #endif

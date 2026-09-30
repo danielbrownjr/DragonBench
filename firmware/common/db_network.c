@@ -46,6 +46,12 @@ bool db_request_id_is_newer(uint32_t candidate, uint32_t reference) {
     return distance != 0U && distance < UINT32_C(0x80000000);
 }
 
+const char *db_wifi_band_name(unsigned channel) {
+    if (channel >= 1U && channel <= 14U) return "2.4GHz";
+    if (channel >= 32U && channel <= 177U) return "5GHz";
+    return "unknown";
+}
+
 const char *db_ap_state_name(db_ap_state_t state) {
     static const char *const names[] = {"starting", "active", "failed"};
     return state <= DB_AP_FAILED ? names[state] : "unknown";

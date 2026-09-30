@@ -1,9 +1,14 @@
+# Shared DragonBench defaults, every SoC target and board. ESP-IDF layers
+# sdkconfig.defaults.<IDF_TARGET> (the SoC target's defaults) directly after
+# this file, then the board overlay and any experiment overlay.
+# ESP32-S3 is the default target and N8R8 its default board, so this file plus
+# sdkconfig.defaults.esp32s3 is the N8R8 board profile.
 CONFIG_IDF_TARGET="esp32s3"
+# Every image's partition table ends below 8 MB; a board with more flash keeps
+# the rest unused (docs/TARGET_N16R8.md, docs/TARGET_ESP32C5.md).
 CONFIG_ESPTOOLPY_FLASHSIZE_8MB=y
 CONFIG_ESPTOOLPY_FLASHFREQ_80M=y
 CONFIG_SPIRAM=y
-CONFIG_SPIRAM_MODE_OCT=y
-CONFIG_SPIRAM_SPEED_80M=y
 CONFIG_PARTITION_TABLE_CUSTOM=y
 CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
 CONFIG_COMPILER_WARN_WRITE_STRINGS=y
@@ -17,9 +22,6 @@ CONFIG_MDNS_MAX_INTERFACES=2
 CONFIG_MDNS_PREDEF_NETIF_AP=y
 CONFIG_MDNS_PREDEF_NETIF_STA=y
 # CONFIG_MDNS_PREDEF_NETIF_ETH is not set
-# N8R8 (YD-ESP32-S3) and N16R8 boards: WS2812 status RGB LED data on GPIO48,
-# no power GPIO. Board-owned: status light only, never fixture wiring.
-CONFIG_DB_STATUS_RGB_GPIO=48
 # Experiment profile: baseline unless an sdkconfig.defaults.<experiment>
 # overlay selects exactly one other (docs/EXPERIMENT_PROFILES.md).
 CONFIG_DB_EXPERIMENT_BASELINE=y

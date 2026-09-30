@@ -39,5 +39,12 @@ uint32_t db_sta_retry_delay_ms(unsigned attempt);
 uint32_t db_request_id_next(uint32_t current);
 bool db_request_id_is_newer(uint32_t candidate, uint32_t reference);
 
+/*
+ * Band of a primary Wi-Fi channel number as the driver reports it:
+ * "2.4GHz" for 1-14, "5GHz" for 32-177, "unknown" for anything else
+ * (including 0, not associated).
+ */
+const char *db_wifi_band_name(unsigned channel);
+
 const char *db_ap_state_name(db_ap_state_t state);
 const char *db_sta_state_name(db_sta_state_t state);

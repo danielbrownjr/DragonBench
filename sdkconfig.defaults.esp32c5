@@ -1,0 +1,8 @@
+# ESP32-C5 SoC target defaults. ESP-IDF layers this file after
+# sdkconfig.defaults whenever the build target is esp32c5. ESP32-C5 needs
+# ESP-IDF 5.5.1 or later (it is only a preview target in 5.3.5); DragonBench
+# builds it with ESP-IDF 5.5.5 (docs/TARGET_ESP32C5.md).
+# ESP32-C5 PSRAM is Quad SPI only. 40 MHz is the ESP-IDF default and stays
+# until the specimen's PSRAM part is identified.
+CONFIG_SPIRAM_MODE_QUAD=y
+CONFIG_SPIRAM_SPEED_40M=y

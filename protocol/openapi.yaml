@@ -7,8 +7,17 @@ paths:
     get:
       summary: Device identity, image provenance, and immutable product boundary
       description: >-
-        An image is one board profile plus one experiment profile.
-        board_profile (same value as target) and experiment_profile name them;
+        An image is one SoC target, one of its board profiles, and one
+        experiment profile. soc_target is the ESP-IDF build target;
+        board_profile (same value as target, "<soc_target>-<board>") and
+        experiment_profile name the rest. board_profile_provisional is true
+        for a board profile not yet validated on the physical board.
+        memory reports what the image measured at boot: flash configured_bytes
+        (image header) and detected_bytes (flash JEDEC ID), and PSRAM
+        detected_bytes (0 when PSRAM support is built in but none
+        initialized). memory.board_claim, present only when the board profile
+        states one, is a claimed size with the evidence behind it (for example
+        "expected_from_seller"), never a measurement;
         build.git_sha and build.source_tree record the source revision when
         the build could establish it (git_sha null and source_tree "unknown"
         otherwise; "dirty" means tracked changes or untracked, non-ignored
@@ -31,10 +40,12 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [board_profile, experiment_profile, firmware_version, build, device_id, measurement_provenance]
+                required: [soc_target, board_profile, board_profile_provisional, experiment_profile, firmware_version, build, memory, device_id, measurement_provenance]
                 properties:
                   target: {type: string}
-                  board_profile: {type: string, enum: [esp32s3-n8r8, esp32s3-n16r8, esp32s3-tinys3d]}
+                  soc_target: {type: string, enum: [esp32s3, esp32c5]}
+                  board_profile: {type: string, enum: [esp32s3-n8r8, esp32s3-n16r8, esp32s3-tinys3d, esp32c5-wroom1u-n32r8]}
+                  board_profile_provisional: {type: boolean}
                   experiment_profile: {type: string, enum: [baseline, fan-characterization]}
                   firmware_version: {type: string}
                   build:
@@ -45,6 +56,29 @@ paths:
                       git_sha: {type: string, nullable: true, pattern: "^[0-9a-f]+$"}
                       source_tree: {type: string, enum: [clean, dirty, unknown]}
                       esp_idf: {type: string}
+                  memory:
+                    type: object
+                    required: [flash, psram]
+                    properties:
+                      flash:
+                        type: object
+                        required: [configured_bytes, detected_bytes]
+                        properties:
+                          configured_bytes: {type: integer, nullable: true}
+                          detected_bytes: {type: integer, nullable: true}
+                      psram:
+                        type: object
+                        required: [enabled, detected_bytes]
+                        properties:
+                          enabled: {type: boolean}
+                          detected_bytes: {type: integer, nullable: true}
+                      board_claim:
+                        type: object
+                        required: [flash_bytes, psram_bytes, source]
+                        properties:
+                          flash_bytes: {type: integer}
+                          psram_bytes: {type: integer}
+                          source: {type: string, example: expected_from_seller}
                   device_id: {type: string}
                   measurement_provenance:
                     type: object
@@ -75,7 +109,14 @@ paths:
                           tach_ready: {type: boolean}
                           tach_ppr: {type: integer, nullable: true}
   /api/v1/status:
-    get: {summary: Current run, network, uptime, and reset state}
+    get:
+      summary: Current run, network, uptime, and reset state
+      description: >-
+        While the station is connected, network also carries sta_channel and
+        sta_band ("2.4GHz", "5GHz", or "unknown", from the channel number).
+        On a dual-band SoC (ESP32-C5) network.band_mode reports the radio band
+        mode as ESP-IDF configured it ("2.4GHz", "5GHz", "auto", "unknown");
+        DragonBench does not change it.
   /api/v1/sensors:
     get:
       summary: Truthful DUT signal registry
