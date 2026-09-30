@@ -13,9 +13,12 @@
 Status: firmware, API, and host tooling are implemented and build-verified.
 The image has booted on an N16R8 with nothing attached to the gate or tach
 pins, and a DMM confirmed the static 0% and 100% gate levels there (see
-[TARGET_N16R8.md](TARGET_N16R8.md#validation-status)). No fixture has been
-built or connected. The wiring is still to be defined, see
-[Open items](#open-items).
+[TARGET_N16R8.md](TARGET_N16R8.md#validation-status)). The current provisional
+Rev 0 wiring is the N16R8 with GPIO6 as the gate and GPIO7 as the conditioned
+tach input, see
+[TARGET_N16R8.md](TARGET_N16R8.md#fan-characterization-fixture-pins). These are
+bench-fixture assignments, not JumpJet product GPIOs. No complete fixture has
+been built or connected; the rest is listed under [Open items](#open-items).
 
 The first specimen is the JumpJet Sanyo Denki `9GA0424P3J001` candidate. Its
 plan and evidence record are JumpJet's
@@ -267,19 +270,23 @@ single hold.
 
 These must come from the bench before any wiring or first power:
 
-1. Board: TinyS3[D], N8R8, or N16R8 module for the fixture.
-2. Gate GPIO and tach GPIO, chosen from free, non-reserved pins on that board.
-   Check each pin's reset-state pull in the ESP32-S3 datasheet IO MUX table
-   against the gate resistor.
-3. Stage topology and part: MOSFET or BJT, inverting or not (sets
+1. Rev 0 provisionally uses the N16R8 with GPIO6 as the gate and GPIO7 as the
+   conditioned tach input (`CONFIG_DB_FAN_GATE_SINK_LEVEL=1`), per
+   [TARGET_N16R8.md](TARGET_N16R8.md#fan-characterization-fixture-pins). Still
+   open: checking GPIO6's reset-state pull in the ESP32-S3 datasheet IO MUX
+   table against the gate resistor, and confirming both pins once the stage
+   and tach conditioning exist.
+2. Stage topology and part: MOSFET or BJT, inverting or not (sets
    `CONFIG_DB_FAN_GATE_SINK_LEVEL`), gate/base resistor, and a gate resistor to
    the release level sized to hold the stage off with the GPIO undriven.
-4. Fan PWM-lead electrical limits and its internal pull-up (plan §6), and
+   Rev 0 intends a non-inverting N-channel MOSFET, which the provisional sink
+   level above assumes; the physical stage is not yet built.
+3. Fan PWM-lead electrical limits and its internal pull-up (plan §6), and
    confirmation that the stage's voltage and current ratings cover them.
-5. Tach output circuit, sink-current limit, the external 3.3 V pull-up value,
+4. Tach output circuit, sink-current limit, the external 3.3 V pull-up value,
    and any series resistor or clamp that keeps the GPIO at or below 3.3 V
    (plan §7). Whether the internal pull-up is ever acceptable.
-6. Lead identity on the delivered specimen (plan §3) and the common-ground
+5. Lead identity on the delivered specimen (plan §3) and the common-ground
    arrangement between the 24 V supply and the ESP32-S3.
-7. Glitch-filter setting after scoping the tach line, if one is needed.
-8. PPR and the evidence establishing it, only after it has been measured.
+6. Glitch-filter setting after scoping the tach line, if one is needed.
+7. PPR and the evidence establishing it, only after it has been measured.
