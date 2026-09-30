@@ -123,7 +123,8 @@ calculated current was ≤ 2 mA.
    - the edges
    - the duty cycle against the generator
 3. Remove the generator.
-4. Flash the fan-characterization image with the N8R8 bench overlay:
+4. Flash the fan-characterization image for the N16R8 with the Rev 0 bench
+   overlay (README "Controller wiring overlay"):
    - `GATE_GPIO=6`, `SINK_LEVEL=1`, `TACH_GPIO=7`
    - PPR 0, internal tach pull-up off
 5. Wire J1.1 and J1.2 to the controller (J1.3 and J1.4 are already wired from

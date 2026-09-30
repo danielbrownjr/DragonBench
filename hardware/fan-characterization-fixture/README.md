@@ -104,14 +104,19 @@ The table is on the sheet. The Rev 0 defaults are JP1–JP4 **OPEN** and JP5
 
 ## Controller wiring overlay (local, not part of the fixture)
 
-| J1 | Net | N8R8 breakout (bench overlay, provisional) | TinyS3[D] |
+| J1 | Net | N16R8, Lonely Binary carrier (Rev 0 bench overlay, provisional) | TinyS3[D] |
 |---|---|---|---|
 | 1 | `MCU_PWM` (out) | GPIO6 | own overlay, TBD |
 | 2 | `TACH_GPIO` (in) | GPIO7 | own overlay, TBD |
 | 3 | `3V3` | 3V3 terminal (**never 5V**) | 3V3 |
 | 4 | `GND` | GND terminal | GND |
 
-`sdkconfig.fan-characterization.local` for the N8R8 wiring:
+This is the provisional Rev 0 wiring recorded in PR #8's
+`docs/TARGET_N16R8.md` ("Fan-characterization fixture pins"). The pins are
+DragonBench bench-fixture assignments, not JumpJet GPIOs.
+
+`sdkconfig.fan-characterization.local` for the N16R8 wiring, built with
+`sdkconfig.defaults;sdkconfig.defaults.n16r8;sdkconfig.defaults.fan-characterization;sdkconfig.fan-characterization.local`:
 
 ```text
 CONFIG_DB_FAN_PWM_GATE_GPIO=6
@@ -125,20 +130,26 @@ Why GPIO6/7:
 
 - **Not reserved.** They pass PR #8's `DB_FAN_PIN_RESERVED`: they are not
   strapping, USB, flash/PSRAM, Octal PSRAM (33–37), or UART0 pins, and not the
-  TinyS3D RF switch (38).
-- **No pull at reset.** They have no pull-up or pull-down at or after reset
-  (ESP32-S3 datasheet, GPIO4–8), so R2 alone sets the gate before firmware
-  runs.
+  N16R8's status RGB LED (48) or the TinyS3D RF switch (38).
+- **Reset-state pull: unverified.** Whether GPIO6 has a pull-up or
+  pull-down at or after reset has not been checked against the ESP32-S3
+  datasheet's IO MUX table. R2 is sized to hold the gate low with the GPIO
+  undriven; confirm the reset state before relying on it.
 - **Unused alternate functions.** Their other functions are ADC1, touch, and
   RTC GPIO, none of which DragonBench uses.
-- **Power-up glitch.** The documented power-up glitch is to the low level,
-  which is the release level here.
-
-The ESP32-S3-DevKitC-1 guide lists both pins with no onboard function.
-**Confirm on your N8R8 board** (CH343P bridge, possibly not an Espressif
-DevKitC) that GPIO6/7 reach the breakout and drive nothing onboard.
+- **Power-up glitch: unverified.** The expectation that any power-up glitch
+  on these pins is to the low level (the release level here) comes from the
+  same datasheet section and has not been re-checked.
+- **On the board.** On the Lonely Binary N16R8 carrier, GPIO6 and GPIO7 are on
+  the pluggable terminals, and its GPIO map shows both as plain GPIO.
 
 These are bench choices, not product GPIO assignments.
+
+**Validation boundary.** On the N16R8 the baseline image is physically
+validated, the fan-characterization image has booted, and GPIO6's static 0 %
+and 100 % gate levels were measured with nothing attached (PR #8,
+`docs/TARGET_N16R8.md`). Not validated: the complete fixture, the external
+stage, the tach path, and the 25 kHz waveform. PPR is unknown.
 
 ## DUT electrical facts (manufacturer documentation)
 
@@ -311,7 +322,7 @@ Status key:
 
 | Ref | Part / value | Function | Stress | Why | Status |
 |---|---|---|---|---|---|
-| J1 | 4-pos 5.08 mm screw terminal | Controller link | 3.3 V, < 20 mA | Matches the screw-terminal breakout | PROVISIONAL (style) |
+| J1 | 4-pos 5.08 mm screw terminal | Controller link | 3.3 V, < 20 mA | Screw terminal for wires from the controller's terminals | PROVISIONAL (style) |
 | JP1 | 2-pin header + shunt, `GATE_EN` | Disconnects the controller from the gate; TP3 can take a signal generator | 3.3 V | Isolation point | FINAL |
 | R1 | 220 Ω 1 % 0805 | Gate series resistor | ≤ 15 mA peak | See calculations | PROVISIONAL (until Ciss confirmed) |
 | R2 | 10 kΩ 1 % 0805 | Gate pulldown | 0.32 mA | Holds Q1 off when the GPIO is Hi-Z/reset/unpowered | PROVISIONAL (confirm IGSS) |
