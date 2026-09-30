@@ -56,11 +56,14 @@ jobs:
         if: always()
         run: |
           cat dependencies.lock.esp32c5 || true
+          # Byte-exact copy for environments that cannot download artifacts.
+          sha256sum dependencies.lock.esp32c5 || true
+          base64 -w0 dependencies.lock.esp32c5 && echo || true
           git status --porcelain
           find build -name db_build_provenance.h -exec cat {} \;
       - name: Upload the ESP32-C5 Component Manager lockfile
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: esp32c5-dependencies-lock
           path: dependencies.lock.esp32c5
