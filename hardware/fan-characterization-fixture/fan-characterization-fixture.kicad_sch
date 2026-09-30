@@ -1,0 +1,2530 @@
+(kicad_sch
+  (version 20250114)
+  (generator "eeschema")
+  (generator_version "9.0")
+  (uuid "40c81846-c604-5f80-a432-156beefa23ca")
+  (paper "A3")
+  (title_block
+    (title "DragonBench fan-characterization fixture (BENCH ONLY)")
+    (date "2026-09-28")
+    (rev "0-draft")
+    (company "thetechbenders / DragonBench")
+    (comment 1 "BENCH characterization hardware. NOT JumpJet production.")
+    (comment 2 "DUT: San Ace 9GA0424P3J001 (24 V, 4-wire), drawing Rev C")
+    (comment 3 "Rev 0: JP1-JP4 OPEN, JP5 fitted")
+    (comment 4 "Specimen lead ID and configured PPR: UNVERIFIED"))
+  (lib_symbols
+    (symbol
+      "Connector:Screw_Terminal_01x04"
+      (pin_names (offset 1.016) (hide yes))
+      (exclude_from_sim no)
+      (in_bom yes)
+      (on_board yes)
+      (property "Reference" "J" (at 0 5.08 0) (effects (font (size 1.27 1.27))))
+      (property "Value" "Screw_Terminal_01x04" (at 0 -7.62 0) (effects (font (size 1.27 1.27))))
+      (property "Footprint" "" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "Datasheet" "~" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property
+        "Description"
+        "Generic screw terminal, single row, 01x04, script generated (kicad-library-utils/schlib/autogen/connector/)"
+        (at 0 0 0)
+        (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "ki_keywords" "screw terminal" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property
+        "ki_fp_filters"
+        "TerminalBlock*:*"
+        (at 0 0 0)
+        (effects (font (size 1.27 1.27)) (hide yes)))
+      (symbol
+        "Screw_Terminal_01x04_1_1"
+        (rectangle
+          (start -1.27 3.81)
+          (end 1.27 -6.35)
+          (stroke (width 0.254) (type default))
+          (fill (type background)))
+        (polyline
+          (pts (xy -0.5334 2.8702) (xy 0.3302 2.032))
+          (stroke (width 0.1524) (type default))
+          (fill (type none)))
+        (polyline
+          (pts (xy -0.5334 0.3302) (xy 0.3302 -0.508))
+          (stroke (width 0.1524) (type default))
+          (fill (type none)))
+        (polyline
+          (pts (xy -0.5334 -2.2098) (xy 0.3302 -3.048))
+          (stroke (width 0.1524) (type default))
+          (fill (type none)))
+        (polyline
+          (pts (xy -0.5334 -4.7498) (xy 0.3302 -5.588))
+          (stroke (width 0.1524) (type default))
+          (fill (type none)))
+        (polyline
+          (pts (xy -0.3556 3.048) (xy 0.508 2.2098))
+          (stroke (width 0.1524) (type default))
+          (fill (type none)))
+        (polyline
+          (pts (xy -0.3556 0.508) (xy 0.508 -0.3302))
+          (stroke (width 0.1524) (type default))
+          (fill (type none)))
+        (polyline
+          (pts (xy -0.3556 -2.032) (xy 0.508 -2.8702))
+          (stroke (width 0.1524) (type default))
+          (fill (type none)))
+        (polyline
+          (pts (xy -0.3556 -4.572) (xy 0.508 -5.4102))
+          (stroke (width 0.1524) (type default))
+          (fill (type none)))
+        (circle (center 0 2.54) (radius 0.635) (stroke (width 0.1524) (type default)) (fill (type none)))
+        (circle (center 0 0) (radius 0.635) (stroke (width 0.1524) (type default)) (fill (type none)))
+        (circle (center 0 -2.54) (radius 0.635) (stroke (width 0.1524) (type default)) (fill (type none)))
+        (circle (center 0 -5.08) (radius 0.635) (stroke (width 0.1524) (type default)) (fill (type none)))
+        (pin
+          passive
+          line
+          (at -5.08 2.54 0)
+          (length 3.81)
+          (name "Pin_1" (effects (font (size 1.27 1.27))))
+          (number "1" (effects (font (size 1.27 1.27)))))
+        (pin
+          passive
+          line
+          (at -5.08 0 0)
+          (length 3.81)
+          (name "Pin_2" (effects (font (size 1.27 1.27))))
+          (number "2" (effects (font (size 1.27 1.27)))))
+        (pin
+          passive
+          line
+          (at -5.08 -2.54 0)
+          (length 3.81)
+          (name "Pin_3" (effects (font (size 1.27 1.27))))
+          (number "3" (effects (font (size 1.27 1.27)))))
+        (pin
+          passive
+          line
+          (at -5.08 -5.08 0)
+          (length 3.81)
+          (name "Pin_4" (effects (font (size 1.27 1.27))))
+          (number "4" (effects (font (size 1.27 1.27))))))
+      (embedded_fonts no))
+    (symbol
+      "Connector:TestPoint"
+      (pin_numbers (hide yes))
+      (pin_names (offset 0.762) (hide yes))
+      (exclude_from_sim no)
+      (in_bom yes)
+      (on_board yes)
+      (property "Reference" "TP" (at 0 6.858 0) (effects (font (size 1.27 1.27))))
+      (property "Value" "TestPoint" (at 0 5.08 0) (effects (font (size 1.27 1.27))))
+      (property "Footprint" "" (at 5.08 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "Datasheet" "~" (at 5.08 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "Description" "test point" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "ki_keywords" "test point tp" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "ki_fp_filters" "Pin* Test*" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (symbol
+        "TestPoint_0_1"
+        (circle (center 0 3.302) (radius 0.762) (stroke (width 0) (type default)) (fill (type none))))
+      (symbol
+        "TestPoint_1_1"
+        (pin
+          passive
+          line
+          (at 0 0 90)
+          (length 2.54)
+          (name "1" (effects (font (size 1.27 1.27))))
+          (number "1" (effects (font (size 1.27 1.27))))))
+      (embedded_fonts no))
+    (symbol
+      "Jumper:Jumper_2_Open"
+      (pin_numbers (hide yes))
+      (pin_names (offset 0) (hide yes))
+      (exclude_from_sim no)
+      (in_bom yes)
+      (on_board yes)
+      (property "Reference" "JP" (at 0 2.794 0) (effects (font (size 1.27 1.27))))
+      (property "Value" "Jumper_2_Open" (at 0 -2.286 0) (effects (font (size 1.27 1.27))))
+      (property "Footprint" "" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "Datasheet" "~" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property
+        "Description"
+        "Jumper, 2-pole, open"
+        (at 0 0 0)
+        (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "ki_keywords" "Jumper SPST" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property
+        "ki_fp_filters"
+        "Jumper* TestPoint*2Pads* TestPoint*Bridge*"
+        (at 0 0 0)
+        (effects (font (size 1.27 1.27)) (hide yes)))
+      (symbol
+        "Jumper_2_Open_0_0"
+        (circle (center -2.032 0) (radius 0.508) (stroke (width 0) (type default)) (fill (type none)))
+        (circle (center 2.032 0) (radius 0.508) (stroke (width 0) (type default)) (fill (type none))))
+      (symbol
+        "Jumper_2_Open_0_1"
+        (arc
+          (start -1.524 1.27)
+          (mid 0 1.778)
+          (end 1.524 1.27)
+          (stroke (width 0) (type default))
+          (fill (type none))))
+      (symbol
+        "Jumper_2_Open_1_1"
+        (pin
+          passive
+          line
+          (at -5.08 0 0)
+          (length 2.54)
+          (name "A" (effects (font (size 1.27 1.27))))
+          (number "1" (effects (font (size 1.27 1.27)))))
+        (pin
+          passive
+          line
+          (at 5.08 0 180)
+          (length 2.54)
+          (name "B" (effects (font (size 1.27 1.27))))
+          (number "2" (effects (font (size 1.27 1.27))))))
+      (embedded_fonts no))
+    (symbol
+      "Device:R"
+      (pin_numbers (hide yes))
+      (pin_names (offset 0))
+      (exclude_from_sim no)
+      (in_bom yes)
+      (on_board yes)
+      (property "Reference" "R" (at 2.032 0 90) (effects (font (size 1.27 1.27))))
+      (property "Value" "R" (at 0 0 90) (effects (font (size 1.27 1.27))))
+      (property "Footprint" "" (at -1.778 0 90) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "Datasheet" "~" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "Description" "Resistor" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "ki_keywords" "R res resistor" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "ki_fp_filters" "R_*" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (symbol
+        "R_0_1"
+        (rectangle
+          (start -1.016 -2.54)
+          (end 1.016 2.54)
+          (stroke (width 0.254) (type default))
+          (fill (type none))))
+      (symbol
+        "R_1_1"
+        (pin
+          passive
+          line
+          (at 0 3.81 270)
+          (length 1.27)
+          (name "~" (effects (font (size 1.27 1.27))))
+          (number "1" (effects (font (size 1.27 1.27)))))
+        (pin
+          passive
+          line
+          (at 0 -3.81 90)
+          (length 1.27)
+          (name "~" (effects (font (size 1.27 1.27))))
+          (number "2" (effects (font (size 1.27 1.27))))))
+      (embedded_fonts no))
+    (symbol
+      "Transistor_FET:Q_NMOS_GSD"
+      (pin_names (offset 0) (hide yes))
+      (exclude_from_sim no)
+      (in_bom yes)
+      (on_board yes)
+      (property "Reference" "Q" (at 5.08 1.905 0) (effects (font (size 1.27 1.27)) (justify left)))
+      (property "Value" "Q_NMOS_GSD" (at 5.08 0 0) (effects (font (size 1.27 1.27)) (justify left)))
+      (property "Footprint" "" (at 5.08 2.54 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "Datasheet" "~" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property
+        "Description"
+        "N-MOSFET transistor, gate/source/drain"
+        (at 0 0 0)
+        (effects (font (size 1.27 1.27)) (hide yes)))
+      (property
+        "ki_keywords"
+        "transistor NMOS N-MOS N-MOSFET"
+        (at 0 0 0)
+        (effects (font (size 1.27 1.27)) (hide yes)))
+      (symbol
+        "Q_NMOS_GSD_0_1"
+        (polyline
+          (pts (xy 0.254 1.905) (xy 0.254 -1.905))
+          (stroke (width 0.254) (type default))
+          (fill (type none)))
+        (polyline (pts (xy 0.254 0) (xy -2.54 0)) (stroke (width 0) (type default)) (fill (type none)))
+        (polyline
+          (pts (xy 0.762 2.286) (xy 0.762 1.27))
+          (stroke (width 0.254) (type default))
+          (fill (type none)))
+        (polyline
+          (pts (xy 0.762 0.508) (xy 0.762 -0.508))
+          (stroke (width 0.254) (type default))
+          (fill (type none)))
+        (polyline
+          (pts (xy 0.762 -1.27) (xy 0.762 -2.286))
+          (stroke (width 0.254) (type default))
+          (fill (type none)))
+        (polyline
+          (pts (xy 0.762 -1.778) (xy 3.302 -1.778) (xy 3.302 1.778) (xy 0.762 1.778))
+          (stroke (width 0) (type default))
+          (fill (type none)))
+        (polyline
+          (pts (xy 1.016 0) (xy 2.032 0.381) (xy 2.032 -0.381) (xy 1.016 0))
+          (stroke (width 0) (type default))
+          (fill (type outline)))
+        (circle (center 1.651 0) (radius 2.794) (stroke (width 0.254) (type default)) (fill (type none)))
+        (polyline
+          (pts (xy 2.54 2.54) (xy 2.54 1.778))
+          (stroke (width 0) (type default))
+          (fill (type none)))
+        (circle (center 2.54 1.778) (radius 0.254) (stroke (width 0) (type default)) (fill (type outline)))
+        (circle
+          (center 2.54 -1.778)
+          (radius 0.254)
+          (stroke (width 0) (type default))
+          (fill (type outline)))
+        (polyline
+          (pts (xy 2.54 -2.54) (xy 2.54 0) (xy 0.762 0))
+          (stroke (width 0) (type default))
+          (fill (type none)))
+        (polyline
+          (pts (xy 2.921 0.381) (xy 3.683 0.381))
+          (stroke (width 0) (type default))
+          (fill (type none)))
+        (polyline
+          (pts (xy 3.302 0.381) (xy 2.921 -0.254) (xy 3.683 -0.254) (xy 3.302 0.381))
+          (stroke (width 0) (type default))
+          (fill (type none))))
+      (symbol
+        "Q_NMOS_GSD_1_1"
+        (pin
+          input
+          line
+          (at -5.08 0 0)
+          (length 2.54)
+          (name "G" (effects (font (size 1.27 1.27))))
+          (number "1" (effects (font (size 1.27 1.27)))))
+        (pin
+          passive
+          line
+          (at 2.54 5.08 270)
+          (length 2.54)
+          (name "D" (effects (font (size 1.27 1.27))))
+          (number "3" (effects (font (size 1.27 1.27)))))
+        (pin
+          passive
+          line
+          (at 2.54 -5.08 90)
+          (length 2.54)
+          (name "S" (effects (font (size 1.27 1.27))))
+          (number "2" (effects (font (size 1.27 1.27))))))
+      (embedded_fonts no))
+    (symbol
+      "Diode:BAT54S"
+      (pin_names (offset 0))
+      (exclude_from_sim no)
+      (in_bom yes)
+      (on_board yes)
+      (property "Reference" "D" (at 2.54 -5.08 0) (effects (font (size 1.27 1.27)) (justify left)))
+      (property "Value" "BAT54S" (at -6.35 3.175 0) (effects (font (size 1.27 1.27)) (justify left)))
+      (property
+        "Footprint"
+        "Package_TO_SOT_SMD:SOT-23"
+        (at 1.905 3.175 0)
+        (effects (font (size 1.27 1.27)) (justify left) (hide yes)))
+      (property
+        "Datasheet"
+        "https://www.diodes.com/assets/Datasheets/ds11005.pdf"
+        (at -3.048 0 0)
+        (effects (font (size 1.27 1.27)) (hide yes)))
+      (property
+        "Description"
+        "Vr 30V, If 200mA, Dual schottky barrier diode, in series, SOT-323"
+        (at 0 0 0)
+        (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "ki_keywords" "schottky diode" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "ki_fp_filters" "SOT?23*" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (symbol
+        "BAT54S_0_1"
+        (polyline
+          (pts (xy -4.445 1.27) (xy -4.445 -1.27) (xy -2.54 0) (xy -4.445 1.27))
+          (stroke (width 0) (type default))
+          (fill (type none)))
+        (polyline (pts (xy -3.81 0) (xy -1.27 0)) (stroke (width 0) (type default)) (fill (type none)))
+        (polyline
+          (pts (xy -3.175 -1.27) (xy -3.175 -1.016))
+          (stroke (width 0) (type default))
+          (fill (type none)))
+        (polyline
+          (pts (xy -2.54 1.27) (xy -1.905 1.27))
+          (stroke (width 0) (type default))
+          (fill (type none)))
+        (polyline
+          (pts (xy -2.54 -1.27) (xy -3.175 -1.27))
+          (stroke (width 0) (type default))
+          (fill (type none)))
+        (polyline
+          (pts (xy -2.54 -1.27) (xy -2.54 1.27))
+          (stroke (width 0) (type default))
+          (fill (type none)))
+        (polyline
+          (pts (xy -1.905 1.27) (xy -1.905 1.016))
+          (stroke (width 0) (type default))
+          (fill (type none)))
+        (polyline (pts (xy -1.905 0) (xy 1.905 0)) (stroke (width 0) (type default)) (fill (type none)))
+        (circle (center 0 0) (radius 0.254) (stroke (width 0) (type default)) (fill (type outline)))
+        (polyline (pts (xy 1.27 0) (xy 3.81 0)) (stroke (width 0) (type default)) (fill (type none)))
+        (polyline
+          (pts (xy 1.905 1.27) (xy 1.905 -1.27) (xy 3.81 0) (xy 1.905 1.27))
+          (stroke (width 0) (type default))
+          (fill (type none)))
+        (polyline
+          (pts (xy 3.175 -1.27) (xy 3.175 -1.016))
+          (stroke (width 0) (type default))
+          (fill (type none)))
+        (polyline
+          (pts (xy 3.81 1.27) (xy 4.445 1.27))
+          (stroke (width 0) (type default))
+          (fill (type none)))
+        (polyline
+          (pts (xy 3.81 -1.27) (xy 3.175 -1.27))
+          (stroke (width 0) (type default))
+          (fill (type none)))
+        (polyline
+          (pts (xy 3.81 -1.27) (xy 3.81 1.27))
+          (stroke (width 0) (type default))
+          (fill (type none)))
+        (polyline
+          (pts (xy 4.445 1.27) (xy 4.445 1.016))
+          (stroke (width 0) (type default))
+          (fill (type none))))
+      (symbol
+        "BAT54S_1_1"
+        (pin
+          passive
+          line
+          (at -7.62 0 0)
+          (length 3.81)
+          (name "A" (effects (font (size 1.27 1.27))))
+          (number "1" (effects (font (size 1.27 1.27)))))
+        (pin
+          passive
+          line
+          (at 0 -5.08 90)
+          (length 5.08)
+          (name "COM" (effects (font (size 1.27 1.27))))
+          (number "3" (effects (font (size 1.27 1.27)))))
+        (pin
+          passive
+          line
+          (at 7.62 0 180)
+          (length 3.81)
+          (name "K" (effects (font (size 1.27 1.27))))
+          (number "2" (effects (font (size 1.27 1.27))))))
+      (embedded_fonts no))
+    (symbol
+      "Device:C"
+      (pin_numbers (hide yes))
+      (pin_names (offset 0.254))
+      (exclude_from_sim no)
+      (in_bom yes)
+      (on_board yes)
+      (property "Reference" "C" (at 0.635 2.54 0) (effects (font (size 1.27 1.27)) (justify left)))
+      (property "Value" "C" (at 0.635 -2.54 0) (effects (font (size 1.27 1.27)) (justify left)))
+      (property "Footprint" "" (at 0.9652 -3.81 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "Datasheet" "~" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property
+        "Description"
+        "Unpolarized capacitor"
+        (at 0 0 0)
+        (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "ki_keywords" "cap capacitor" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "ki_fp_filters" "C_*" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (symbol
+        "C_0_1"
+        (polyline
+          (pts (xy -2.032 0.762) (xy 2.032 0.762))
+          (stroke (width 0.508) (type default))
+          (fill (type none)))
+        (polyline
+          (pts (xy -2.032 -0.762) (xy 2.032 -0.762))
+          (stroke (width 0.508) (type default))
+          (fill (type none))))
+      (symbol
+        "C_1_1"
+        (pin
+          passive
+          line
+          (at 0 3.81 270)
+          (length 2.794)
+          (name "~" (effects (font (size 1.27 1.27))))
+          (number "1" (effects (font (size 1.27 1.27)))))
+        (pin
+          passive
+          line
+          (at 0 -3.81 90)
+          (length 2.794)
+          (name "~" (effects (font (size 1.27 1.27))))
+          (number "2" (effects (font (size 1.27 1.27))))))
+      (embedded_fonts no))
+    (symbol
+      "Connector:Screw_Terminal_01x02"
+      (pin_names (offset 1.016) (hide yes))
+      (exclude_from_sim no)
+      (in_bom yes)
+      (on_board yes)
+      (property "Reference" "J" (at 0 2.54 0) (effects (font (size 1.27 1.27))))
+      (property "Value" "Screw_Terminal_01x02" (at 0 -5.08 0) (effects (font (size 1.27 1.27))))
+      (property "Footprint" "" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "Datasheet" "~" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property
+        "Description"
+        "Generic screw terminal, single row, 01x02, script generated (kicad-library-utils/schlib/autogen/connector/)"
+        (at 0 0 0)
+        (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "ki_keywords" "screw terminal" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property
+        "ki_fp_filters"
+        "TerminalBlock*:*"
+        (at 0 0 0)
+        (effects (font (size 1.27 1.27)) (hide yes)))
+      (symbol
+        "Screw_Terminal_01x02_1_1"
+        (rectangle
+          (start -1.27 1.27)
+          (end 1.27 -3.81)
+          (stroke (width 0.254) (type default))
+          (fill (type background)))
+        (polyline
+          (pts (xy -0.5334 0.3302) (xy 0.3302 -0.508))
+          (stroke (width 0.1524) (type default))
+          (fill (type none)))
+        (polyline
+          (pts (xy -0.5334 -2.2098) (xy 0.3302 -3.048))
+          (stroke (width 0.1524) (type default))
+          (fill (type none)))
+        (polyline
+          (pts (xy -0.3556 0.508) (xy 0.508 -0.3302))
+          (stroke (width 0.1524) (type default))
+          (fill (type none)))
+        (polyline
+          (pts (xy -0.3556 -2.032) (xy 0.508 -2.8702))
+          (stroke (width 0.1524) (type default))
+          (fill (type none)))
+        (circle (center 0 0) (radius 0.635) (stroke (width 0.1524) (type default)) (fill (type none)))
+        (circle (center 0 -2.54) (radius 0.635) (stroke (width 0.1524) (type default)) (fill (type none)))
+        (pin
+          passive
+          line
+          (at -5.08 0 0)
+          (length 3.81)
+          (name "Pin_1" (effects (font (size 1.27 1.27))))
+          (number "1" (effects (font (size 1.27 1.27)))))
+        (pin
+          passive
+          line
+          (at -5.08 -2.54 0)
+          (length 3.81)
+          (name "Pin_2" (effects (font (size 1.27 1.27))))
+          (number "2" (effects (font (size 1.27 1.27))))))
+      (embedded_fonts no))
+    (symbol
+      "Device:Fuse"
+      (pin_numbers (hide yes))
+      (pin_names (offset 0))
+      (exclude_from_sim no)
+      (in_bom yes)
+      (on_board yes)
+      (property "Reference" "F" (at 2.032 0 90) (effects (font (size 1.27 1.27))))
+      (property "Value" "Fuse" (at -1.905 0 90) (effects (font (size 1.27 1.27))))
+      (property "Footprint" "" (at -1.778 0 90) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "Datasheet" "~" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "Description" "Fuse" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "ki_keywords" "fuse" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "ki_fp_filters" "*Fuse*" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (symbol
+        "Fuse_0_1"
+        (rectangle
+          (start -0.762 -2.54)
+          (end 0.762 2.54)
+          (stroke (width 0.254) (type default))
+          (fill (type none)))
+        (polyline (pts (xy 0 2.54) (xy 0 -2.54)) (stroke (width 0) (type default)) (fill (type none))))
+      (symbol
+        "Fuse_1_1"
+        (pin
+          passive
+          line
+          (at 0 3.81 270)
+          (length 1.27)
+          (name "~" (effects (font (size 1.27 1.27))))
+          (number "1" (effects (font (size 1.27 1.27)))))
+        (pin
+          passive
+          line
+          (at 0 -3.81 90)
+          (length 1.27)
+          (name "~" (effects (font (size 1.27 1.27))))
+          (number "2" (effects (font (size 1.27 1.27))))))
+      (embedded_fonts no))
+    (symbol
+      "Jumper:Jumper_2_Bridged"
+      (pin_numbers (hide yes))
+      (pin_names (offset 0) (hide yes))
+      (exclude_from_sim no)
+      (in_bom yes)
+      (on_board yes)
+      (property "Reference" "JP" (at 0 1.905 0) (effects (font (size 1.27 1.27))))
+      (property "Value" "Jumper_2_Bridged" (at 0 -2.54 0) (effects (font (size 1.27 1.27))))
+      (property "Footprint" "" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "Datasheet" "~" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property
+        "Description"
+        "Jumper, 2-pole, closed/bridged"
+        (at 0 0 0)
+        (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "ki_keywords" "Jumper SPST" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property
+        "ki_fp_filters"
+        "Jumper* TestPoint*2Pads* TestPoint*Bridge*"
+        (at 0 0 0)
+        (effects (font (size 1.27 1.27)) (hide yes)))
+      (symbol
+        "Jumper_2_Bridged_0_0"
+        (circle (center -2.032 0) (radius 0.508) (stroke (width 0) (type default)) (fill (type none)))
+        (circle (center 2.032 0) (radius 0.508) (stroke (width 0) (type default)) (fill (type none))))
+      (symbol
+        "Jumper_2_Bridged_0_1"
+        (arc
+          (start -1.524 0.254)
+          (mid 0 0.762)
+          (end 1.524 0.254)
+          (stroke (width 0) (type default))
+          (fill (type none))))
+      (symbol
+        "Jumper_2_Bridged_1_1"
+        (pin
+          passive
+          line
+          (at -5.08 0 0)
+          (length 2.54)
+          (name "A" (effects (font (size 1.27 1.27))))
+          (number "1" (effects (font (size 1.27 1.27)))))
+        (pin
+          passive
+          line
+          (at 5.08 0 180)
+          (length 2.54)
+          (name "B" (effects (font (size 1.27 1.27))))
+          (number "2" (effects (font (size 1.27 1.27))))))
+      (embedded_fonts no))
+    (symbol
+      "Device:LED"
+      (pin_numbers (hide yes))
+      (pin_names (offset 1.016) (hide yes))
+      (exclude_from_sim no)
+      (in_bom yes)
+      (on_board yes)
+      (property "Reference" "D" (at 0 2.54 0) (effects (font (size 1.27 1.27))))
+      (property "Value" "LED" (at 0 -2.54 0) (effects (font (size 1.27 1.27))))
+      (property "Footprint" "" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "Datasheet" "~" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property
+        "Description"
+        "Light emitting diode"
+        (at 0 0 0)
+        (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "Sim.Pins" "1=K 2=A" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "ki_keywords" "LED diode" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property
+        "ki_fp_filters"
+        "LED* LED_SMD:* LED_THT:*"
+        (at 0 0 0)
+        (effects (font (size 1.27 1.27)) (hide yes)))
+      (symbol
+        "LED_0_1"
+        (polyline
+          (pts (xy -3.048 -0.762) (xy -4.572 -2.286) (xy -3.81 -2.286) (xy -4.572 -2.286) (xy -4.572 -1.524))
+          (stroke (width 0) (type default))
+          (fill (type none)))
+        (polyline
+          (pts (xy -1.778 -0.762) (xy -3.302 -2.286) (xy -2.54 -2.286) (xy -3.302 -2.286) (xy -3.302 -1.524))
+          (stroke (width 0) (type default))
+          (fill (type none)))
+        (polyline (pts (xy -1.27 0) (xy 1.27 0)) (stroke (width 0) (type default)) (fill (type none)))
+        (polyline
+          (pts (xy -1.27 -1.27) (xy -1.27 1.27))
+          (stroke (width 0.254) (type default))
+          (fill (type none)))
+        (polyline
+          (pts (xy 1.27 -1.27) (xy 1.27 1.27) (xy -1.27 0) (xy 1.27 -1.27))
+          (stroke (width 0.254) (type default))
+          (fill (type none))))
+      (symbol
+        "LED_1_1"
+        (pin
+          passive
+          line
+          (at -3.81 0 0)
+          (length 2.54)
+          (name "K" (effects (font (size 1.27 1.27))))
+          (number "1" (effects (font (size 1.27 1.27)))))
+        (pin
+          passive
+          line
+          (at 3.81 0 180)
+          (length 2.54)
+          (name "A" (effects (font (size 1.27 1.27))))
+          (number "2" (effects (font (size 1.27 1.27))))))
+      (embedded_fonts no))
+    (symbol
+      "Device:C_Polarized"
+      (pin_numbers (hide yes))
+      (pin_names (offset 0.254))
+      (exclude_from_sim no)
+      (in_bom yes)
+      (on_board yes)
+      (property "Reference" "C" (at 0.635 2.54 0) (effects (font (size 1.27 1.27)) (justify left)))
+      (property
+        "Value"
+        "C_Polarized"
+        (at 0.635 -2.54 0)
+        (effects (font (size 1.27 1.27)) (justify left)))
+      (property "Footprint" "" (at 0.9652 -3.81 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "Datasheet" "~" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property
+        "Description"
+        "Polarized capacitor"
+        (at 0 0 0)
+        (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "ki_keywords" "cap capacitor" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "ki_fp_filters" "CP_*" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (symbol
+        "C_Polarized_0_1"
+        (rectangle
+          (start -2.286 0.508)
+          (end 2.286 1.016)
+          (stroke (width 0) (type default))
+          (fill (type none)))
+        (polyline
+          (pts (xy -1.778 2.286) (xy -0.762 2.286))
+          (stroke (width 0) (type default))
+          (fill (type none)))
+        (polyline
+          (pts (xy -1.27 2.794) (xy -1.27 1.778))
+          (stroke (width 0) (type default))
+          (fill (type none)))
+        (rectangle
+          (start 2.286 -0.508)
+          (end -2.286 -1.016)
+          (stroke (width 0) (type default))
+          (fill (type outline))))
+      (symbol
+        "C_Polarized_1_1"
+        (pin
+          passive
+          line
+          (at 0 3.81 270)
+          (length 2.794)
+          (name "~" (effects (font (size 1.27 1.27))))
+          (number "1" (effects (font (size 1.27 1.27)))))
+        (pin
+          passive
+          line
+          (at 0 -3.81 90)
+          (length 2.794)
+          (name "~" (effects (font (size 1.27 1.27))))
+          (number "2" (effects (font (size 1.27 1.27))))))
+      (embedded_fonts no))
+    (symbol
+      "Device:NetTie_2"
+      (pin_numbers (hide yes))
+      (pin_names (offset 0) (hide yes))
+      (exclude_from_sim no)
+      (in_bom no)
+      (on_board yes)
+      (property "Reference" "NT" (at 0 1.27 0) (effects (font (size 1.27 1.27))))
+      (property "Value" "NetTie_2" (at 0 -1.27 0) (effects (font (size 1.27 1.27))))
+      (property "Footprint" "" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "Datasheet" "~" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "Description" "Net tie, 2 pins" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "ki_keywords" "net tie short" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "ki_fp_filters" "Net*Tie*" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (symbol
+        "NetTie_2_0_1"
+        (polyline (pts (xy -1.27 0) (xy 1.27 0)) (stroke (width 0.254) (type default)) (fill (type none))))
+      (symbol
+        "NetTie_2_1_1"
+        (pin
+          passive
+          line
+          (at -2.54 0 0)
+          (length 2.54)
+          (name "1" (effects (font (size 1.27 1.27))))
+          (number "1" (effects (font (size 1.27 1.27)))))
+        (pin
+          passive
+          line
+          (at 2.54 0 180)
+          (length 2.54)
+          (name "2" (effects (font (size 1.27 1.27))))
+          (number "2" (effects (font (size 1.27 1.27))))))
+      (embedded_fonts no)))
+  (wire
+    (pts (xy 40.64 53.34) (xy 38.1 53.34))
+    (stroke (width 0) (type default))
+    (uuid "0a7bb71a-38d6-5bb2-b108-d8f5fd98fd3e"))
+  (label
+    "MCU_PWM"
+    (at 38.1 53.34 180)
+    (fields_autoplaced)
+    (effects (font (size 1.27 1.27)) (justify right bottom))
+    (uuid "58aaf23a-77a5-53d2-8c92-60cab106cbd2"))
+  (wire
+    (pts (xy 40.64 55.88) (xy 38.1 55.88))
+    (stroke (width 0) (type default))
+    (uuid "88039c8d-b5cb-5272-8f68-5da32c8850ce"))
+  (label
+    "TACH_GPIO"
+    (at 38.1 55.88 180)
+    (fields_autoplaced)
+    (effects (font (size 1.27 1.27)) (justify right bottom))
+    (uuid "88e5917a-d25d-59db-91a9-b12f0e72a2a9"))
+  (wire
+    (pts (xy 40.64 58.42) (xy 38.1 58.42))
+    (stroke (width 0) (type default))
+    (uuid "beba86d6-2ff6-5ddb-8d41-3fa66b2f495e"))
+  (label
+    "3V3"
+    (at 38.1 58.42 180)
+    (fields_autoplaced)
+    (effects (font (size 1.27 1.27)) (justify right bottom))
+    (uuid "85ebda2e-2419-54c3-a924-5a90d464e381"))
+  (wire
+    (pts (xy 40.64 60.96) (xy 38.1 60.96))
+    (stroke (width 0) (type default))
+    (uuid "3bab1f11-8a7e-51af-bd31-df8be37b63f9"))
+  (label
+    "GND"
+    (at 38.1 60.96 180)
+    (fields_autoplaced)
+    (effects (font (size 1.27 1.27)) (justify right bottom))
+    (uuid "80eefd41-8209-5ee0-89de-9a6d43e04a50"))
+  (wire
+    (pts (xy 78.74 50.8) (xy 78.74 53.34))
+    (stroke (width 0) (type default))
+    (uuid "13d1badf-214d-526e-a7ac-7b7f6b03e7e9"))
+  (label
+    "3V3"
+    (at 78.74 53.34 270)
+    (fields_autoplaced)
+    (effects (font (size 1.27 1.27)) (justify right bottom))
+    (uuid "54febd7b-2c6a-5fc3-906a-ff0674da1079"))
+  (wire
+    (pts (xy 93.98 50.8) (xy 93.98 53.34))
+    (stroke (width 0) (type default))
+    (uuid "2c8b51e0-9f91-5be0-b96e-ababc0bbfba0"))
+  (label
+    "GND"
+    (at 93.98 53.34 270)
+    (fields_autoplaced)
+    (effects (font (size 1.27 1.27)) (justify right bottom))
+    (uuid "84f74f17-12bd-5f50-95fc-e054170d4192"))
+  (wire
+    (pts (xy 124.46 50.8) (xy 121.92 50.8))
+    (stroke (width 0) (type default))
+    (uuid "9c60ae59-67ba-50e4-aa4e-e7f988f8594e"))
+  (label
+    "MCU_PWM"
+    (at 121.92 50.8 180)
+    (fields_autoplaced)
+    (effects (font (size 1.27 1.27)) (justify right bottom))
+    (uuid "f160fbc9-1386-51e7-a489-8f1e43de5044"))
+  (wire
+    (pts (xy 167.64 64.77) (xy 167.64 67.31))
+    (stroke (width 0) (type default))
+    (uuid "d05e71db-acce-5f4c-b8f4-02f897c5274e"))
+  (label
+    "GND"
+    (at 167.64 67.31 270)
+    (fields_autoplaced)
+    (effects (font (size 1.27 1.27)) (justify right bottom))
+    (uuid "240807ad-5797-5e63-a15c-f96efb31b572"))
+  (wire
+    (pts (xy 185.42 55.88) (xy 185.42 58.42))
+    (stroke (width 0) (type default))
+    (uuid "b4aa4ae4-f3f6-514d-b3a1-ac6eb36d40f4"))
+  (label
+    "GND"
+    (at 185.42 58.42 270)
+    (fields_autoplaced)
+    (effects (font (size 1.27 1.27)) (justify right bottom))
+    (uuid "9669a1ae-5f9d-534e-907d-115d0ba80392"))
+  (wire
+    (pts (xy 254 60.96) (xy 254 63.5))
+    (stroke (width 0) (type default))
+    (uuid "a17f4214-d404-57ce-980a-a18c6c4ede49"))
+  (label
+    "GND"
+    (at 254 63.5 270)
+    (fields_autoplaced)
+    (effects (font (size 1.27 1.27)) (justify right bottom))
+    (uuid "835210ff-5cc0-5e32-ad94-0ce6f9686682"))
+  (wire
+    (pts (xy 330.2 43.18) (xy 332.74 43.18))
+    (stroke (width 0) (type default))
+    (uuid "1a3998ba-cd26-5a2c-829c-4b5fd0d07cab"))
+  (label
+    "3V3"
+    (at 332.74 43.18 0)
+    (fields_autoplaced)
+    (effects (font (size 1.27 1.27)) (justify left bottom))
+    (uuid "f43657eb-73d6-5ede-89f4-456fe2290223"))
+  (wire
+    (pts (xy 340.36 82.55) (xy 340.36 85.09))
+    (stroke (width 0) (type default))
+    (uuid "8ecb2079-2cba-5cc6-8618-1981195a5d34"))
+  (label
+    "GND"
+    (at 340.36 85.09 270)
+    (fields_autoplaced)
+    (effects (font (size 1.27 1.27)) (justify right bottom))
+    (uuid "0a7edbd8-4aca-5332-b901-85120cfd4c88"))
+  (wire
+    (pts (xy 350.52 60.96) (xy 347.98 60.96))
+    (stroke (width 0) (type default))
+    (uuid "0b186af4-b1c3-5346-976f-91a697190cdc"))
+  (label
+    "GND"
+    (at 347.98 60.96 180)
+    (fields_autoplaced)
+    (effects (font (size 1.27 1.27)) (justify right bottom))
+    (uuid "0818bc51-5258-59dd-833e-ab8501d23eb6"))
+  (wire
+    (pts (xy 365.76 60.96) (xy 368.3 60.96))
+    (stroke (width 0) (type default))
+    (uuid "d3d6fee2-b739-5292-9b52-a488aaa26c55"))
+  (label
+    "3V3"
+    (at 368.3 60.96 0)
+    (fields_autoplaced)
+    (effects (font (size 1.27 1.27)) (justify left bottom))
+    (uuid "fa303972-cb23-5ef1-b1bd-701e4bd14df1"))
+  (wire
+    (pts (xy 375.92 82.55) (xy 375.92 85.09))
+    (stroke (width 0) (type default))
+    (uuid "05ad59c7-96c7-5767-b5d0-7a7349116784"))
+  (label
+    "GND"
+    (at 375.92 85.09 270)
+    (fields_autoplaced)
+    (effects (font (size 1.27 1.27)) (justify right bottom))
+    (uuid "d4e8c05a-a20a-55af-906a-44718cc34b5c"))
+  (wire
+    (pts (xy 386.08 91.44) (xy 386.08 93.98))
+    (stroke (width 0) (type default))
+    (uuid "771550aa-5a2f-5663-852c-5770a4207bfd"))
+  (label
+    "3V3"
+    (at 386.08 93.98 270)
+    (fields_autoplaced)
+    (effects (font (size 1.27 1.27)) (justify right bottom))
+    (uuid "f3e47a1f-175f-524b-b4c7-732b45158c03"))
+  (wire
+    (pts (xy 398.78 91.44) (xy 398.78 93.98))
+    (stroke (width 0) (type default))
+    (uuid "35c35fb8-2f92-52b1-8d17-c235cbaa0a18"))
+  (label
+    "GND"
+    (at 398.78 93.98 270)
+    (fields_autoplaced)
+    (effects (font (size 1.27 1.27)) (justify right bottom))
+    (uuid "a1e2a43a-7ea0-59b9-a83e-069745adda9f"))
+  (wire
+    (pts (xy 38.1 157.48) (xy 35.56 157.48))
+    (stroke (width 0) (type default))
+    (uuid "55b06cf5-9fdf-52d3-a438-2eeef50184dd"))
+  (label
+    "BENCH_24V"
+    (at 35.56 157.48 180)
+    (fields_autoplaced)
+    (effects (font (size 1.27 1.27)) (justify right bottom))
+    (uuid "4bbe9770-5a1c-55ea-ab01-ab5a65eb7e19"))
+  (wire
+    (pts (xy 38.1 160.02) (xy 35.56 160.02))
+    (stroke (width 0) (type default))
+    (uuid "db2d2653-6bf3-5d6b-adf3-6c0146b05210"))
+  (label
+    "BENCH_GND"
+    (at 35.56 160.02 180)
+    (fields_autoplaced)
+    (effects (font (size 1.27 1.27)) (justify right bottom))
+    (uuid "77c08dc7-3b8d-521f-803c-b471bd2aee26"))
+  (wire
+    (pts (xy 99.06 184.15) (xy 99.06 186.69))
+    (stroke (width 0) (type default))
+    (uuid "a22ce4fb-2ef7-59c6-81c9-a6a861367b96"))
+  (label
+    "BENCH_GND"
+    (at 99.06 186.69 270)
+    (fields_autoplaced)
+    (effects (font (size 1.27 1.27)) (justify right bottom))
+    (uuid "81ccd6a0-aee0-5eca-a60d-18da02289971"))
+  (wire
+    (pts (xy 137.16 168.91) (xy 137.16 171.45))
+    (stroke (width 0) (type default))
+    (uuid "532724ea-2f23-5f47-ae5c-02c00f0088ea"))
+  (label
+    "FAN_GND"
+    (at 137.16 171.45 270)
+    (fields_autoplaced)
+    (effects (font (size 1.27 1.27)) (justify right bottom))
+    (uuid "d0980eaf-e6df-5688-893c-63564628d159"))
+  (wire
+    (pts (xy 165.1 165.1) (xy 165.1 167.64))
+    (stroke (width 0) (type default))
+    (uuid "0507b3b8-808d-507f-a64d-b81327109f17"))
+  (label
+    "FAN_GND"
+    (at 165.1 167.64 270)
+    (fields_autoplaced)
+    (effects (font (size 1.27 1.27)) (justify right bottom))
+    (uuid "50e81814-55b9-5287-bd2e-7af9213db173"))
+  (wire
+    (pts (xy 55.88 198.12) (xy 58.42 198.12))
+    (stroke (width 0) (type default))
+    (uuid "3651467a-ab17-58c5-8994-5b3ac8c04f7b"))
+  (label
+    "FAN_GND"
+    (at 58.42 198.12 0)
+    (fields_autoplaced)
+    (effects (font (size 1.27 1.27)) (justify left bottom))
+    (uuid "a07b6dc5-312a-51fd-8ebf-47e6bb91dec8"))
+  (wire
+    (pts (xy 55.88 213.36) (xy 58.42 213.36))
+    (stroke (width 0) (type default))
+    (uuid "fd1a968e-10bd-525d-a2e0-0c075be4bde6"))
+  (label
+    "GND"
+    (at 58.42 213.36 0)
+    (fields_autoplaced)
+    (effects (font (size 1.27 1.27)) (justify left bottom))
+    (uuid "3e767cad-1594-59f2-86ef-48d710dd27ef"))
+  (wire
+    (pts (xy 246.38 154.94) (xy 243.84 154.94))
+    (stroke (width 0) (type default))
+    (uuid "48b69dd9-8780-5453-8056-af2c92fd7697"))
+  (label
+    "FAN_24V"
+    (at 243.84 154.94 180)
+    (fields_autoplaced)
+    (effects (font (size 1.27 1.27)) (justify right bottom))
+    (uuid "4382385a-54c6-5953-8785-82909d07e0c0"))
+  (wire
+    (pts (xy 246.38 157.48) (xy 243.84 157.48))
+    (stroke (width 0) (type default))
+    (uuid "51cf7ba1-8e2e-5feb-8ea9-5f85f6fd2d17"))
+  (label
+    "FAN_GND"
+    (at 243.84 157.48 180)
+    (fields_autoplaced)
+    (effects (font (size 1.27 1.27)) (justify right bottom))
+    (uuid "e0b58000-e715-5530-bddd-f37450920549"))
+  (wire
+    (pts (xy 246.38 160.02) (xy 243.84 160.02))
+    (stroke (width 0) (type default))
+    (uuid "42f715aa-1ac2-5291-a924-a10882cd43a1"))
+  (label
+    "FAN_PWM_RAW"
+    (at 243.84 160.02 180)
+    (fields_autoplaced)
+    (effects (font (size 1.27 1.27)) (justify right bottom))
+    (uuid "fdf3f539-7f36-5322-88a6-f470a3ebd9d8"))
+  (wire
+    (pts (xy 246.38 162.56) (xy 243.84 162.56))
+    (stroke (width 0) (type default))
+    (uuid "58c7e380-3b3b-5a82-aa26-4f8b3d1ed188"))
+  (label
+    "FAN_TACH_RAW"
+    (at 243.84 162.56 180)
+    (fields_autoplaced)
+    (effects (font (size 1.27 1.27)) (justify right bottom))
+    (uuid "6e437389-604c-599d-b396-46de7b8a5170"))
+  (wire
+    (pts (xy 134.62 50.8) (xy 144.78 50.8))
+    (stroke (width 0) (type default))
+    (uuid "6360c556-1e0d-57de-b26f-d454d1acbc33"))
+  (wire
+    (pts (xy 144.78 50.8) (xy 148.59 50.8))
+    (stroke (width 0) (type default))
+    (uuid "bfe8956a-382c-5ca7-8e14-408fdd2bd244"))
+  (wire
+    (pts (xy 144.78 43.18) (xy 144.78 50.8))
+    (stroke (width 0) (type default))
+    (uuid "5e4e831f-e0b2-5361-a7cd-dab36e7f0b2c"))
+  (wire
+    (pts (xy 156.21 50.8) (xy 167.64 50.8))
+    (stroke (width 0) (type default))
+    (uuid "5ca3fd25-ba0d-5bfc-a250-04642cd8aa21"))
+  (wire
+    (pts (xy 167.64 50.8) (xy 172.72 50.8))
+    (stroke (width 0) (type default))
+    (uuid "e1b0d3dc-306f-5630-b4de-2f58ac1a3e67"))
+  (wire
+    (pts (xy 172.72 50.8) (xy 177.8 50.8))
+    (stroke (width 0) (type default))
+    (uuid "11967f44-595b-5bf9-be46-83f0102c2e7e"))
+  (wire
+    (pts (xy 167.64 57.15) (xy 167.64 50.8))
+    (stroke (width 0) (type default))
+    (uuid "86df1ddc-9f96-5348-9cc2-b36a94bde6d1"))
+  (wire
+    (pts (xy 172.72 43.18) (xy 172.72 50.8))
+    (stroke (width 0) (type default))
+    (uuid "155e30ba-cabe-58f9-847b-82749fc3f79d"))
+  (wire
+    (pts (xy 185.42 45.72) (xy 185.42 38.1))
+    (stroke (width 0) (type default))
+    (uuid "281f3395-b97e-560b-82e2-e11eda3cad59"))
+  (wire
+    (pts (xy 185.42 38.1) (xy 208.28 38.1))
+    (stroke (width 0) (type default))
+    (uuid "8d0c6705-1d7c-5133-8fc5-ff157d80cde4"))
+  (wire
+    (pts (xy 208.28 38.1) (xy 215.9 38.1))
+    (stroke (width 0) (type default))
+    (uuid "c169c215-a6cf-5003-8ea0-9847b7d5a873"))
+  (wire
+    (pts (xy 208.28 30.48) (xy 208.28 38.1))
+    (stroke (width 0) (type default))
+    (uuid "2218581a-41ea-5e23-8865-6d314744d815"))
+  (wire
+    (pts (xy 226.06 38.1) (xy 233.68 38.1))
+    (stroke (width 0) (type default))
+    (uuid "a6e2a771-e58e-5f6f-9c5f-294aedb9ce41"))
+  (wire
+    (pts (xy 233.68 38.1) (xy 243.84 38.1))
+    (stroke (width 0) (type default))
+    (uuid "26c2d1a3-08c8-582f-a0d9-7da5888228a1"))
+  (wire
+    (pts (xy 233.68 30.48) (xy 233.68 38.1))
+    (stroke (width 0) (type default))
+    (uuid "91e7c8a0-4169-5aaf-906f-61eb9129cf06"))
+  (wire
+    (pts (xy 276.86 55.88) (xy 287.02 55.88))
+    (stroke (width 0) (type default))
+    (uuid "f1c0c1d6-dd4e-57f1-9582-a247e663da31"))
+  (wire
+    (pts (xy 287.02 55.88) (xy 294.64 55.88))
+    (stroke (width 0) (type default))
+    (uuid "445924fc-a1f6-53f7-b50e-e9cbd9a590c9"))
+  (wire
+    (pts (xy 294.64 43.18) (xy 294.64 55.88))
+    (stroke (width 0) (type default))
+    (uuid "58e23606-8d98-53ad-97f0-d6266a63ef4f"))
+  (wire
+    (pts (xy 294.64 55.88) (xy 294.64 68.58))
+    (stroke (width 0) (type default))
+    (uuid "d8239363-1705-5032-a874-0193eb020960"))
+  (wire
+    (pts (xy 294.64 43.18) (xy 299.72 43.18))
+    (stroke (width 0) (type default))
+    (uuid "099bae97-624f-52a6-9623-d6e83cb17115"))
+  (wire
+    (pts (xy 294.64 68.58) (xy 299.72 68.58))
+    (stroke (width 0) (type default))
+    (uuid "9f3261eb-4af2-5882-9543-8989051715ef"))
+  (wire
+    (pts (xy 287.02 63.5) (xy 287.02 55.88))
+    (stroke (width 0) (type default))
+    (uuid "d2a2871e-9c7b-519b-bc08-abc3b7fbbd42"))
+  (wire
+    (pts (xy 309.88 43.18) (xy 322.58 43.18))
+    (stroke (width 0) (type default))
+    (uuid "3ed83ce4-d82c-5e95-9846-de57ae8e9216"))
+  (wire
+    (pts (xy 309.88 68.58) (xy 322.58 68.58))
+    (stroke (width 0) (type default))
+    (uuid "d0105362-7f07-5451-87e0-af9b7b335c18"))
+  (wire
+    (pts (xy 330.2 68.58) (xy 340.36 68.58))
+    (stroke (width 0) (type default))
+    (uuid "941cf1f4-3247-5891-af1c-565945a684c1"))
+  (wire
+    (pts (xy 340.36 68.58) (xy 358.14 68.58))
+    (stroke (width 0) (type default))
+    (uuid "e4e6c24a-81fe-55e9-88a3-a3811cec5fa9"))
+  (wire
+    (pts (xy 358.14 68.58) (xy 375.92 68.58))
+    (stroke (width 0) (type default))
+    (uuid "bcac0b5e-cf96-5cef-b683-a045be3037e4"))
+  (wire
+    (pts (xy 375.92 68.58) (xy 386.08 68.58))
+    (stroke (width 0) (type default))
+    (uuid "d2d6c66e-5b14-5908-86c0-2aa788c01129"))
+  (wire
+    (pts (xy 386.08 68.58) (xy 391.16 68.58))
+    (stroke (width 0) (type default))
+    (uuid "db72d13f-ce1c-5067-a941-59d398dc7159"))
+  (wire
+    (pts (xy 340.36 74.93) (xy 340.36 68.58))
+    (stroke (width 0) (type default))
+    (uuid "d1fb730f-00f6-583b-8fba-e0135addd825"))
+  (wire
+    (pts (xy 358.14 66.04) (xy 358.14 68.58))
+    (stroke (width 0) (type default))
+    (uuid "d6d79fbb-cdf8-5ca9-ba8b-70a10835212a"))
+  (wire
+    (pts (xy 375.92 74.93) (xy 375.92 68.58))
+    (stroke (width 0) (type default))
+    (uuid "0be7282a-6c7f-5995-98b0-6cfaddf7089c"))
+  (wire
+    (pts (xy 386.08 60.96) (xy 386.08 68.58))
+    (stroke (width 0) (type default))
+    (uuid "95a960bf-eec0-5c85-a053-1022e41f0aec"))
+  (wire
+    (pts (xy 50.8 154.94) (xy 66.04 154.94))
+    (stroke (width 0) (type default))
+    (uuid "bfb48ce8-ed8c-5ea7-860d-809d42894f4a"))
+  (wire
+    (pts (xy 66.04 154.94) (xy 72.39 154.94))
+    (stroke (width 0) (type default))
+    (uuid "fdc452f8-fe92-5245-892e-006508491a03"))
+  (wire
+    (pts (xy 66.04 147.32) (xy 66.04 154.94))
+    (stroke (width 0) (type default))
+    (uuid "9f530a1a-7f95-534c-a179-c00415c8739c"))
+  (wire
+    (pts (xy 80.01 154.94) (xy 99.06 154.94))
+    (stroke (width 0) (type default))
+    (uuid "3d9dcc58-774c-591b-9c8c-cc940bcdde3f"))
+  (wire
+    (pts (xy 99.06 154.94) (xy 106.68 154.94))
+    (stroke (width 0) (type default))
+    (uuid "8b8da78c-b355-54c5-947f-f15724ecee29"))
+  (wire
+    (pts (xy 99.06 161.29) (xy 99.06 154.94))
+    (stroke (width 0) (type default))
+    (uuid "cb7ca8a5-d5b6-5f98-bd38-bf7fb4d47553"))
+  (wire
+    (pts (xy 99.06 168.91) (xy 99.06 176.53))
+    (stroke (width 0) (type default))
+    (uuid "605f4eb1-2b5c-52b8-821e-c3d797c6edda"))
+  (wire
+    (pts (xy 116.84 154.94) (xy 124.46 154.94))
+    (stroke (width 0) (type default))
+    (uuid "0d423abc-5726-5ca0-b9f7-d44a1e52359f"))
+  (wire
+    (pts (xy 124.46 154.94) (xy 137.16 154.94))
+    (stroke (width 0) (type default))
+    (uuid "c505d4ce-46e5-508c-b4f0-3af856b5da0b"))
+  (wire
+    (pts (xy 137.16 154.94) (xy 152.4 154.94))
+    (stroke (width 0) (type default))
+    (uuid "0cd389b3-0d23-5ff2-808d-3cb0d19a5978"))
+  (wire
+    (pts (xy 124.46 147.32) (xy 124.46 154.94))
+    (stroke (width 0) (type default))
+    (uuid "c14ab4e7-196c-58ff-814b-162a0d0631cc"))
+  (wire
+    (pts (xy 137.16 161.29) (xy 137.16 154.94))
+    (stroke (width 0) (type default))
+    (uuid "751d8996-a087-54fc-bb8a-6563e3d8c01f"))
+  (wire
+    (pts (xy 30.48 205.74) (xy 43.18 205.74))
+    (stroke (width 0) (type default))
+    (uuid "3ec2561e-ac3a-59af-ab34-21be58a0746e"))
+  (wire
+    (pts (xy 43.18 198.12) (xy 43.18 205.74))
+    (stroke (width 0) (type default))
+    (uuid "9310010a-4a17-5219-a9f7-205a55c01588"))
+  (wire
+    (pts (xy 43.18 205.74) (xy 43.18 213.36))
+    (stroke (width 0) (type default))
+    (uuid "0b5cc576-aeaa-52c3-8999-d008ff993058"))
+  (wire
+    (pts (xy 43.18 198.12) (xy 50.8 198.12))
+    (stroke (width 0) (type default))
+    (uuid "9396c3ef-3e88-5952-91d8-7b048b75136f"))
+  (wire
+    (pts (xy 43.18 213.36) (xy 50.8 213.36))
+    (stroke (width 0) (type default))
+    (uuid "aa544eb5-c038-5107-bfc5-8b6d1bd1f2e6"))
+  (junction
+    (at 144.78 50.8)
+    (diameter 0)
+    (color 0 0 0 0)
+    (uuid "05e080e1-3b1f-520d-9302-d75b1aa0e528"))
+  (junction
+    (at 167.64 50.8)
+    (diameter 0)
+    (color 0 0 0 0)
+    (uuid "a4d49b08-52b0-5ad4-914d-669487be7a58"))
+  (junction
+    (at 172.72 50.8)
+    (diameter 0)
+    (color 0 0 0 0)
+    (uuid "770700bd-7ebc-5145-9a08-0bc48133e878"))
+  (junction
+    (at 208.28 38.1)
+    (diameter 0)
+    (color 0 0 0 0)
+    (uuid "42afd080-6caf-5d13-9d36-d58f212207e0"))
+  (junction
+    (at 233.68 38.1)
+    (diameter 0)
+    (color 0 0 0 0)
+    (uuid "66b96962-3448-5244-b2a5-975718b453bc"))
+  (junction
+    (at 294.64 55.88)
+    (diameter 0)
+    (color 0 0 0 0)
+    (uuid "fe990034-034a-5fa0-a2ff-2d85ab2484d9"))
+  (junction
+    (at 287.02 55.88)
+    (diameter 0)
+    (color 0 0 0 0)
+    (uuid "610a50a5-b039-5094-a197-d6f268a3e1b0"))
+  (junction
+    (at 340.36 68.58)
+    (diameter 0)
+    (color 0 0 0 0)
+    (uuid "51221f44-1afe-5283-96ac-b2d608bf6918"))
+  (junction
+    (at 358.14 68.58)
+    (diameter 0)
+    (color 0 0 0 0)
+    (uuid "61f2b328-8eae-534d-afa3-2e4d8d5b1548"))
+  (junction
+    (at 375.92 68.58)
+    (diameter 0)
+    (color 0 0 0 0)
+    (uuid "017ee773-e2f2-50e3-9ecc-857afbe4e093"))
+  (junction
+    (at 386.08 68.58)
+    (diameter 0)
+    (color 0 0 0 0)
+    (uuid "aad47119-3961-52f6-9cd9-dfdd6d08cfa8"))
+  (junction
+    (at 66.04 154.94)
+    (diameter 0)
+    (color 0 0 0 0)
+    (uuid "aaec5fe6-0ebf-5524-b371-7d0041d57064"))
+  (junction
+    (at 99.06 154.94)
+    (diameter 0)
+    (color 0 0 0 0)
+    (uuid "1070fc42-f85b-59be-9d5a-551508b69930"))
+  (junction
+    (at 124.46 154.94)
+    (diameter 0)
+    (color 0 0 0 0)
+    (uuid "2e6c6c86-6f2c-5efa-8a15-5a2861ca3e21"))
+  (junction
+    (at 137.16 154.94)
+    (diameter 0)
+    (color 0 0 0 0)
+    (uuid "76912324-0994-595d-94a7-2265f509eb90"))
+  (junction
+    (at 43.18 205.74)
+    (diameter 0)
+    (color 0 0 0 0)
+    (uuid "86643e9b-89eb-5231-b626-d232f0eb3258"))
+  (label
+    "PWM_IN"
+    (at 135.89 50.8 0)
+    (fields_autoplaced)
+    (effects (font (size 1.27 1.27)) (justify left bottom))
+    (uuid "36fc6162-0bf9-5817-8227-aa6fd3831e5f"))
+  (label
+    "PWM_GATE"
+    (at 157.48 50.8 0)
+    (fields_autoplaced)
+    (effects (font (size 1.27 1.27)) (justify left bottom))
+    (uuid "ba6ba88f-3678-5d30-ae3f-680b47658972"))
+  (label
+    "PWM_DRAIN"
+    (at 186.69 38.1 0)
+    (fields_autoplaced)
+    (effects (font (size 1.27 1.27)) (justify left bottom))
+    (uuid "b8fd648c-4efa-50ed-99dc-71946c117c52"))
+  (label
+    "FAN_PWM_RAW"
+    (at 243.84 38.1 0)
+    (fields_autoplaced)
+    (effects (font (size 1.27 1.27)) (justify left bottom))
+    (uuid "cdfe4676-58f1-5ead-bb9b-9640a5fcf2a7"))
+  (label
+    "FAN_TACH_RAW"
+    (at 276.86 55.88 0)
+    (fields_autoplaced)
+    (effects (font (size 1.27 1.27)) (justify left bottom))
+    (uuid "afdd4826-9631-5705-93c7-7de00009b979"))
+  (label
+    "TACH_PU"
+    (at 311.15 43.18 0)
+    (fields_autoplaced)
+    (effects (font (size 1.27 1.27)) (justify left bottom))
+    (uuid "cb2bc870-2fcd-50d0-95e1-e697ad2425d9"))
+  (label
+    "TACH_SER"
+    (at 311.15 68.58 0)
+    (fields_autoplaced)
+    (effects (font (size 1.27 1.27)) (justify left bottom))
+    (uuid "b85d2945-cbb4-5029-bf16-606f522ea398"))
+  (label
+    "TACH_GPIO"
+    (at 391.16 68.58 0)
+    (fields_autoplaced)
+    (effects (font (size 1.27 1.27)) (justify left bottom))
+    (uuid "9722bf88-b245-515f-8d51-4ce28aa56c08"))
+  (label
+    "BENCH_24V"
+    (at 50.8 154.94 0)
+    (fields_autoplaced)
+    (effects (font (size 1.27 1.27)) (justify left bottom))
+    (uuid "a67162e3-afb3-5825-a096-8db8af1cb792"))
+  (label
+    "24V_FUSED"
+    (at 81.28 154.94 0)
+    (fields_autoplaced)
+    (effects (font (size 1.27 1.27)) (justify left bottom))
+    (uuid "703aea90-884a-5fb0-92da-343b01bd1f30"))
+  (label
+    "LED_A"
+    (at 99.06 172.72 0)
+    (fields_autoplaced)
+    (effects (font (size 1.27 1.27)) (justify left bottom))
+    (uuid "43c2943b-48fe-532b-a6b8-38c992cd8c58"))
+  (label
+    "FAN_24V"
+    (at 152.4 154.94 0)
+    (fields_autoplaced)
+    (effects (font (size 1.27 1.27)) (justify left bottom))
+    (uuid "3813cf6d-6251-5114-b58f-3c9a30fe2d84"))
+  (label
+    "BENCH_GND"
+    (at 30.48 205.74 0)
+    (fields_autoplaced)
+    (effects (font (size 1.27 1.27)) (justify left bottom))
+    (uuid "533f557c-4ab2-5511-bc88-69fe33ecc505"))
+  (rectangle
+    (start 15.24 20.32)
+    (end 106.68 124.46)
+    (stroke (width 0.254) (type dash))
+    (fill (type none))
+    (uuid "78512e2a-e135-5c6a-824d-8f87cdf554a1"))
+  (text
+    "1. MCU / DragonBench interface"
+    (at 16.51 21.59 0)
+    (effects (font (size 1.8 1.8) bold) (justify left top))
+    (uuid "86065258-a0e5-562c-822d-acec861ea3ff"))
+  (rectangle
+    (start 111.76 20.32)
+    (end 266.7 124.46)
+    (stroke (width 0.254) (type dash))
+    (fill (type none))
+    (uuid "12ab47ca-f992-521e-9bb2-9ced3a7d0065"))
+  (text
+    "2. PWM open-drain driver"
+    (at 113.03 21.59 0)
+    (effects (font (size 1.8 1.8) bold) (justify left top))
+    (uuid "c26539c5-f046-5418-8e3d-98f55eb8efd8"))
+  (rectangle
+    (start 271.78 20.32)
+    (end 406.4 124.46)
+    (stroke (width 0.254) (type dash))
+    (fill (type none))
+    (uuid "121d994d-ce2c-509c-b973-f866055eec1b"))
+  (text
+    "3. Tach input / conditioning"
+    (at 273.05 21.59 0)
+    (effects (font (size 1.8 1.8) bold) (justify left top))
+    (uuid "f58480f0-2cd8-5544-8875-664322381a95"))
+  (rectangle
+    (start 15.24 132.08)
+    (end 213.36 248.92)
+    (stroke (width 0.254) (type dash))
+    (fill (type none))
+    (uuid "cebadaf1-0dc0-5365-9b4e-5167e1f6909f"))
+  (text
+    "4. 24 V fan supply and ground topology"
+    (at 16.51 133.35 0)
+    (effects (font (size 1.8 1.8) bold) (justify left top))
+    (uuid "6158755b-261c-5efc-82cb-1bf9fdd9635e"))
+  (rectangle
+    (start 218.44 132.08)
+    (end 289.56 248.92)
+    (stroke (width 0.254) (type dash))
+    (fill (type none))
+    (uuid "932efa88-2819-5579-aa40-115918dd0ba0"))
+  (text
+    "5. Fan connector"
+    (at 219.71 133.35 0)
+    (effects (font (size 1.8 1.8) bold) (justify left top))
+    (uuid "26879b89-f201-5b2c-a3e1-484b60ea6116"))
+  (rectangle
+    (start 294.64 132.08)
+    (end 406.4 248.92)
+    (stroke (width 0.254) (type dash))
+    (fill (type none))
+    (uuid "a2a355b6-570f-5ea9-b052-47930ca12e31"))
+  (text
+    "6. Test points / configuration jumpers"
+    (at 295.91 133.35 0)
+    (effects (font (size 1.8 1.8) bold) (justify left top))
+    (uuid "da2c1947-b1fb-51d1-8701-ead1f56e7cda"))
+  (text
+    "Controller-agnostic link. Board wiring is a LOCAL overlay.\nN16R8 Rev 0 bench overlay (provisional, NOT JumpJet GPIOs):\n  J1.1 MCU_PWM   <- GPIO6\n  J1.2 TACH_GPIO -> GPIO7\n  J1.3 3V3       <- board 3V3 (never 5V)\n  J1.4 GND       <- board GND\nsdkconfig.fan-characterization.local:\n  CONFIG_DB_FAN_PWM_GATE_GPIO=6\n  CONFIG_DB_FAN_GATE_SINK_LEVEL=1\n  CONFIG_DB_FAN_TACH_GPIO=7\nTinyS3[D]: same J1 functions, own overlay.\nController terminals are passive: no protection assumed."
+    (at 19.05 78.74 0)
+    (effects (font (size 1.27 1.27)) (justify left top))
+    (uuid "1f62a043-3aa5-5f24-a714-1d51354dadeb"))
+  (text
+    "Q1 non-inverting: gate HIGH = sink => CONFIG_DB_FAN_GATE_SINK_LEVEL=1. sink_duty_pct = Q1 on-time.\nFan control input, 9GA0424P3J001 drawing Rev C: 25 kHz specified; open-collector/open-drain drive OK;\n   control open = same speed as 100 %; 0 % = stopped; open voltage <= 5.25 V; source <= 2 mA at 0 V; VIL <= 0.4 V.\nQ1 NTR4003NT1G is a signal-interface FET here: normal stress VDS <= 5.25 V, ID <= 2 mA.\n   Low level at 2 mA: 2 mA x 2.0 ohm (RDS(on) max, VGS 2.5 V) = 4 mV, << 0.4 V.\nR1 220R: gate charge current <= 3.3/220 = 15 mA peak; RC < 25 ns even at 100 pF, vs 20 us half-period.\n   Driven gate = VOH x 10k/10.22k = 3.23 V at 3.3 V (2.94 V at a 3.0 V rail): above the 2.5 V RDS(on) row.\nR2 10k: GPIO6 undriven -> gate = IGSS x 10k (<= 0.1 V at 10 uA, assumed). Reset/flash state unproven: check TP4.\nNOT rated for FAN_PWM_RAW landed on FAN_24V: verify lead identity before landing (BRINGUP step 2).\nNo RC filter and no fixture pull-up on FAN_PWM_RAW. JP2 open = line fully released for open-line tests."
+    (at 116.84 86.36 0)
+    (effects (font (size 1.27 1.27)) (justify left top))
+    (uuid "03081c9f-7a63-592d-a9eb-181d2c53f76e"))
+  (text
+    "Sensor, Sanyo spec 9D0001H202: open collector,\n   VCE <= 27.6 V, IC <= 5 mA, VCE(sat) <= 0.8 V.\n   Spec suggests 2 pulses/rev; configured PPR stays 0\n   (unknown) until an optical RPM check on the specimen.\nDefault JP3 OPEN, JP4 OPEN: raw tach sees only TP8.\nJP3: R3 10k to 3V3 -> 0.33 mA sink (IC max 5 mA).\nJP4: R4 22k, D1 clamp, R5 470k. High ~3.09 V (VIH\n   2.475 V); low <= 0.76 V at VCE(sat) 0.8 V (VIL 0.825 V).\nBack-power if the tach lead is faulted to 26.4 V:\n   R4/D1 <= 1.2 mA, R3 (JP3) <= 2.7 mA into 3V3.\nRULE: controller 3V3 ON before JP3/JP4 close; keep it\n   on until fan power is off or JP3/JP4 are open.\nC2 DNP (no glitch filter). Internal pull-up stays OFF."
+    (at 275.59 86.36 0)
+    (effects (font (size 1.27 1.27)) (justify left top))
+    (uuid "dd407949-ede8-5e5e-98c7-ff1fdef58ab2"))
+  (text
+    "Ground topology: single star point at J2.2 through NT1/NT2.\n  FAN_GND: fan supply return only. GND: Q1 source, tach clamp/pulldowns, J1.4, scope ground.\n  Fan motor current never flows in GND; the <= 2 mA PWM and tach currents return through the star.\n  Controller USB ground meets the PSU negative ONLY here: use a floating PSU output.\nF1: 5x20 holder; rating TBD until startup/locked-rotor current is measured. The bench PSU current\n  limit is the first protection during characterization (holder may carry a labelled 0R link).\nJP5 I_MEAS: remove link to insert an ammeter. D2/R6 (~2.2 mA) sit upstream of JP5.\nNo reverse-polarity element: confirm polarity at TP12 before landing the fan. C1 DNP."
+    (at 19.05 226.06 0)
+    (effects (font (size 1.27 1.27)) (justify left top))
+    (uuid "25cd6c35-987c-5443-ba9a-d1dab7bd1137"))
+  (text
+    "J3 positions are fixture functions,\nnot the fan's physical wire order.\nLand each lead only after it is\nidentified on the specimen by\nphoto + continuity + manufacturer\ndocumentation.\nCatalog convention / not yet\nverified on specimen:\n  red +, black -, brown PWM,\n  yellow sensor."
+    (at 222.25 187.96 0)
+    (effects (font (size 1.27 1.27)) (justify left top))
+    (uuid "6cd557a6-7478-5bc0-ac52-fe478a5dba51"))
+  (text
+    "Jumpers (Rev 0 shipping state)\nJP1  GATE_EN        OPEN     MCU_PWM -> R1/Q1 gate\nJP2  PWM_LINE_EN    OPEN     Q1 drain -> FAN_PWM_RAW\nJP3  TACH_PU_EN     OPEN     R3 3V3 pull-up on raw tach\nJP4  TACH_GPIO_EN   OPEN     raw tach -> R4/D1/R5 -> GPIO\nJP5  I_MEAS         FITTED   24V_FUSED -> FAN_24V\n\nTest points\nTP12 BENCH_24V   TP13 FAN_24V   TP14 FAN_GND\nTP1, TP10 3V3    TP2, TP7, TP11 GND\nTP3 PWM_IN (signal-generator injection with JP1 open)\nTP4 PWM_GATE     TP5 PWM_DRAIN  TP6 FAN_PWM_RAW\nTP8 FAN_TACH_RAW TP9 TACH_GPIO\n\n25 kHz is the manufacturer-specified control frequency\nfor 9GA0424P3J001; bench characterization still\nverifies specimen behaviour. Configured PPR = 0 (unknown).\nNot defined here: JumpJet GPIOs, thresholds, startup\nduty, stall limits, fan-safety policy."
+    (at 298.45 140.97 0)
+    (effects (font (size 1.27 1.27)) (justify left top))
+    (uuid "1ce7477f-0728-599c-9144-95bbc3c3d89e"))
+  (symbol
+    (lib_id "Connector:Screw_Terminal_01x04")
+    (at 45.72 55.88 0)
+    (unit 1)
+    (in_bom yes)
+    (on_board yes)
+    (dnp no)
+    (uuid "58014179-ab32-5fde-b25d-d46ad16835d5")
+    (property "Reference" "J1" (at 43.18 49.53 0) (effects (font (size 1.27 1.27)) (justify left)))
+    (property "Value" "MCU_IF" (at 43.18 67.31 0) (effects (font (size 1.27 1.27)) (justify left)))
+    (property
+      "Footprint"
+      "TerminalBlock_Phoenix:TerminalBlock_Phoenix_MKDS-1,5-4-5.08_1x04_P5.08mm_Horizontal"
+      (at 45.72 55.88 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (property "Datasheet" "~" (at 45.72 55.88 0) (effects (font (size 1.27 1.27)) hide))
+    (property "Status" "PROVISIONAL" (at 45.72 55.88 0) (effects (font (size 1.27 1.27)) hide))
+    (property
+      "Function"
+      "Controller link. Pin 1 MCU_PWM (out), 2 TACH_GPIO (in), 3 3V3 from controller, 4 GND"
+      (at 45.72 55.88 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (pin "1" (uuid "4057427a-448a-5be6-ad44-0c6323568af8"))
+    (pin "2" (uuid "d73f9d24-88d3-547f-8718-36b4bbc4edcc"))
+    (pin "3" (uuid "9ef15d10-781f-58ba-9b13-fad1694aca82"))
+    (pin "4" (uuid "e622feba-a6c7-5bff-b004-7273c6acb2e9"))
+    (instances
+      (project
+        "fan-characterization-fixture"
+        (path "/40c81846-c604-5f80-a432-156beefa23ca" (reference "J1") (unit 1)))))
+  (symbol
+    (lib_id "Connector:TestPoint")
+    (at 78.74 50.8 0)
+    (unit 1)
+    (in_bom yes)
+    (on_board yes)
+    (dnp no)
+    (uuid "baf7cb10-c19f-5236-8d4e-5b09c797d62c")
+    (property "Reference" "TP1" (at 80.01 47.625 0) (effects (font (size 1.27 1.27)) (justify left)))
+    (property "Value" "3V3" (at 78.74 50.8 0) (effects (font (size 1.27 1.27)) (justify left) hide))
+    (property
+      "Footprint"
+      "TestPoint:TestPoint_Keystone_5000-5004_Miniature"
+      (at 78.74 50.8 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (property "Datasheet" "~" (at 78.74 50.8 0) (effects (font (size 1.27 1.27)) hide))
+    (property "Status" "FINAL" (at 78.74 50.8 0) (effects (font (size 1.27 1.27)) hide))
+    (property "Function" "Test point 3V3" (at 78.74 50.8 0) (effects (font (size 1.27 1.27)) hide))
+    (pin "1" (uuid "f9e5bb03-9328-5e8d-afad-bd68b2f238dc"))
+    (instances
+      (project
+        "fan-characterization-fixture"
+        (path "/40c81846-c604-5f80-a432-156beefa23ca" (reference "TP1") (unit 1)))))
+  (symbol
+    (lib_id "Connector:TestPoint")
+    (at 93.98 50.8 0)
+    (unit 1)
+    (in_bom yes)
+    (on_board yes)
+    (dnp no)
+    (uuid "0a020483-d842-5979-9f37-bbbf52b8848a")
+    (property "Reference" "TP2" (at 95.25 47.625 0) (effects (font (size 1.27 1.27)) (justify left)))
+    (property "Value" "GND" (at 93.98 50.8 0) (effects (font (size 1.27 1.27)) (justify left) hide))
+    (property
+      "Footprint"
+      "TestPoint:TestPoint_Keystone_5000-5004_Miniature"
+      (at 93.98 50.8 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (property "Datasheet" "~" (at 93.98 50.8 0) (effects (font (size 1.27 1.27)) hide))
+    (property "Status" "FINAL" (at 93.98 50.8 0) (effects (font (size 1.27 1.27)) hide))
+    (property "Function" "Test point GND" (at 93.98 50.8 0) (effects (font (size 1.27 1.27)) hide))
+    (pin "1" (uuid "d9b07c5e-7e75-55cd-b5ad-6adcb16f0ef0"))
+    (instances
+      (project
+        "fan-characterization-fixture"
+        (path "/40c81846-c604-5f80-a432-156beefa23ca" (reference "TP2") (unit 1)))))
+  (symbol
+    (lib_id "Jumper:Jumper_2_Open")
+    (at 129.54 50.8 0)
+    (unit 1)
+    (in_bom yes)
+    (on_board yes)
+    (dnp no)
+    (uuid "7a714b5f-7d32-515a-8d1f-d40f63e711e6")
+    (property "Reference" "JP1" (at 129.54 45.72 0) (effects (font (size 1.27 1.27))))
+    (property "Value" "GATE_EN" (at 129.54 54.61 0) (effects (font (size 1.27 1.27))))
+    (property
+      "Footprint"
+      "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical"
+      (at 129.54 50.8 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (property "Datasheet" "~" (at 129.54 50.8 0) (effects (font (size 1.27 1.27)) hide))
+    (property "Status" "FINAL" (at 129.54 50.8 0) (effects (font (size 1.27 1.27)) hide))
+    (property
+      "Function"
+      "Open: controller disconnected from gate; PWM_IN free for a signal generator"
+      (at 129.54 50.8 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (property "Default" "OPEN" (at 129.54 50.8 0) (effects (font (size 1.27 1.27)) hide))
+    (pin "1" (uuid "faabac08-8f67-50d4-9bb5-c2ed9df2403b"))
+    (pin "2" (uuid "d17a88fa-8a34-5237-801a-15db468032d3"))
+    (instances
+      (project
+        "fan-characterization-fixture"
+        (path "/40c81846-c604-5f80-a432-156beefa23ca" (reference "JP1") (unit 1)))))
+  (symbol
+    (lib_id "Device:R")
+    (at 152.4 50.8 90)
+    (unit 1)
+    (in_bom yes)
+    (on_board yes)
+    (dnp no)
+    (uuid "a17676a9-8ea2-5ac9-80b5-e6d74c9a8748")
+    (property "Reference" "R1" (at 152.4 48.26 90) (effects (font (size 1.27 1.27))))
+    (property "Value" "220R" (at 152.4 53.34 90) (effects (font (size 1.27 1.27))))
+    (property
+      "Footprint"
+      "Resistor_SMD:R_0805_2012Metric"
+      (at 152.4 50.8 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (property "Datasheet" "~" (at 152.4 50.8 0) (effects (font (size 1.27 1.27)) hide))
+    (property "Status" "PROVISIONAL" (at 152.4 50.8 0) (effects (font (size 1.27 1.27)) hide))
+    (property
+      "Function"
+      "Gate series resistor"
+      (at 152.4 50.8 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (pin "1" (uuid "26aac648-2dc3-5c75-b425-1c7bc9756211"))
+    (pin "2" (uuid "23a0f207-bfa7-5fc2-9f06-ca2b2449e5c8"))
+    (instances
+      (project
+        "fan-characterization-fixture"
+        (path "/40c81846-c604-5f80-a432-156beefa23ca" (reference "R1") (unit 1)))))
+  (symbol
+    (lib_id "Device:R")
+    (at 167.64 60.96 0)
+    (unit 1)
+    (in_bom yes)
+    (on_board yes)
+    (dnp no)
+    (uuid "19b73542-3c8c-5eca-b189-e856d8fafb77")
+    (property "Reference" "R2" (at 170.18 59.69 0) (effects (font (size 1.27 1.27)) (justify left)))
+    (property "Value" "10k" (at 170.18 62.23 0) (effects (font (size 1.27 1.27)) (justify left)))
+    (property
+      "Footprint"
+      "Resistor_SMD:R_0805_2012Metric"
+      (at 167.64 60.96 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (property "Datasheet" "~" (at 167.64 60.96 0) (effects (font (size 1.27 1.27)) hide))
+    (property "Status" "PROVISIONAL" (at 167.64 60.96 0) (effects (font (size 1.27 1.27)) hide))
+    (property
+      "Function"
+      "Gate pulldown: Q1 OFF whenever the gate is not actively driven high"
+      (at 167.64 60.96 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (pin "1" (uuid "77875bc8-d5e7-5fa0-9481-7407cba72d65"))
+    (pin "2" (uuid "e7454a2e-b364-55d3-a10a-b7a4a63b7469"))
+    (instances
+      (project
+        "fan-characterization-fixture"
+        (path "/40c81846-c604-5f80-a432-156beefa23ca" (reference "R2") (unit 1)))))
+  (symbol
+    (lib_id "Transistor_FET:Q_NMOS_GSD")
+    (at 182.88 50.8 0)
+    (unit 1)
+    (in_bom yes)
+    (on_board yes)
+    (dnp no)
+    (uuid "8473c55f-66f7-5816-834a-391f8fde8140")
+    (property "Reference" "Q1" (at 187.96 49.53 0) (effects (font (size 1.27 1.27)) (justify left)))
+    (property
+      "Value"
+      "NTR4003NT1G"
+      (at 187.96 52.07 0)
+      (effects (font (size 1.27 1.27)) (justify left)))
+    (property
+      "Footprint"
+      "Package_TO_SOT_SMD:SOT-23"
+      (at 182.88 50.8 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (property "Datasheet" "~" (at 182.88 50.8 0) (effects (font (size 1.27 1.27)) hide))
+    (property "Status" "PROVISIONAL" (at 182.88 50.8 0) (effects (font (size 1.27 1.27)) hide))
+    (property
+      "Function"
+      "Signal-interface open-drain sink for the fan control input; VDS <= 5.25 V, ID <= 2 mA in normal use"
+      (at 182.88 50.8 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (pin "1" (uuid "bcfe8768-b382-564c-8b8a-142f2b475b2d"))
+    (pin "3" (uuid "c6ee80c3-87d4-5a1b-971b-f016798a117b"))
+    (pin "2" (uuid "cc97a263-33f5-5603-a3bd-b6a8b4416053"))
+    (instances
+      (project
+        "fan-characterization-fixture"
+        (path "/40c81846-c604-5f80-a432-156beefa23ca" (reference "Q1") (unit 1)))))
+  (symbol
+    (lib_id "Jumper:Jumper_2_Open")
+    (at 220.98 38.1 0)
+    (unit 1)
+    (in_bom yes)
+    (on_board yes)
+    (dnp no)
+    (uuid "0b39f9af-2d29-5d81-96d9-64e050b62b47")
+    (property "Reference" "JP2" (at 220.98 33.02 0) (effects (font (size 1.27 1.27))))
+    (property "Value" "PWM_LINE_EN" (at 220.98 41.91 0) (effects (font (size 1.27 1.27))))
+    (property
+      "Footprint"
+      "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical"
+      (at 220.98 38.1 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (property "Datasheet" "~" (at 220.98 38.1 0) (effects (font (size 1.27 1.27)) hide))
+    (property "Status" "FINAL" (at 220.98 38.1 0) (effects (font (size 1.27 1.27)) hide))
+    (property
+      "Function"
+      "Open: fan PWM line carries no fixture load at all"
+      (at 220.98 38.1 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (property "Default" "OPEN" (at 220.98 38.1 0) (effects (font (size 1.27 1.27)) hide))
+    (pin "1" (uuid "a128adf9-e8c2-5e74-808a-a95d574e8a41"))
+    (pin "2" (uuid "dc3f51f5-90b8-5262-a358-e49162622455"))
+    (instances
+      (project
+        "fan-characterization-fixture"
+        (path "/40c81846-c604-5f80-a432-156beefa23ca" (reference "JP2") (unit 1)))))
+  (symbol
+    (lib_id "Connector:TestPoint")
+    (at 144.78 43.18 0)
+    (unit 1)
+    (in_bom yes)
+    (on_board yes)
+    (dnp no)
+    (uuid "51b62456-2264-51ca-9ac0-e65f24ff7352")
+    (property "Reference" "TP3" (at 146.05 40.005 0) (effects (font (size 1.27 1.27)) (justify left)))
+    (property
+      "Value"
+      "PWM_IN"
+      (at 144.78 43.18 0)
+      (effects (font (size 1.27 1.27)) (justify left) hide))
+    (property
+      "Footprint"
+      "TestPoint:TestPoint_Keystone_5000-5004_Miniature"
+      (at 144.78 43.18 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (property "Datasheet" "~" (at 144.78 43.18 0) (effects (font (size 1.27 1.27)) hide))
+    (property "Status" "FINAL" (at 144.78 43.18 0) (effects (font (size 1.27 1.27)) hide))
+    (property
+      "Function"
+      "Test point PWM_IN"
+      (at 144.78 43.18 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (pin "1" (uuid "9cfee3ba-b7af-5302-921b-52bf193539a8"))
+    (instances
+      (project
+        "fan-characterization-fixture"
+        (path "/40c81846-c604-5f80-a432-156beefa23ca" (reference "TP3") (unit 1)))))
+  (symbol
+    (lib_id "Connector:TestPoint")
+    (at 172.72 43.18 0)
+    (unit 1)
+    (in_bom yes)
+    (on_board yes)
+    (dnp no)
+    (uuid "6b7df92e-1631-530b-a161-78e569c2bca0")
+    (property "Reference" "TP4" (at 173.99 40.005 0) (effects (font (size 1.27 1.27)) (justify left)))
+    (property
+      "Value"
+      "PWM_GATE"
+      (at 172.72 43.18 0)
+      (effects (font (size 1.27 1.27)) (justify left) hide))
+    (property
+      "Footprint"
+      "TestPoint:TestPoint_Keystone_5000-5004_Miniature"
+      (at 172.72 43.18 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (property "Datasheet" "~" (at 172.72 43.18 0) (effects (font (size 1.27 1.27)) hide))
+    (property "Status" "FINAL" (at 172.72 43.18 0) (effects (font (size 1.27 1.27)) hide))
+    (property
+      "Function"
+      "Test point PWM_GATE"
+      (at 172.72 43.18 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (pin "1" (uuid "ed7a66a2-0234-5b85-8a6a-6f7a04ef526b"))
+    (instances
+      (project
+        "fan-characterization-fixture"
+        (path "/40c81846-c604-5f80-a432-156beefa23ca" (reference "TP4") (unit 1)))))
+  (symbol
+    (lib_id "Connector:TestPoint")
+    (at 208.28 30.48 0)
+    (unit 1)
+    (in_bom yes)
+    (on_board yes)
+    (dnp no)
+    (uuid "2aae5f40-9032-5ea7-b1d4-dfa92214b5cf")
+    (property "Reference" "TP5" (at 209.55 27.305 0) (effects (font (size 1.27 1.27)) (justify left)))
+    (property
+      "Value"
+      "PWM_DRAIN"
+      (at 208.28 30.48 0)
+      (effects (font (size 1.27 1.27)) (justify left) hide))
+    (property
+      "Footprint"
+      "TestPoint:TestPoint_Keystone_5000-5004_Miniature"
+      (at 208.28 30.48 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (property "Datasheet" "~" (at 208.28 30.48 0) (effects (font (size 1.27 1.27)) hide))
+    (property "Status" "FINAL" (at 208.28 30.48 0) (effects (font (size 1.27 1.27)) hide))
+    (property
+      "Function"
+      "Test point PWM_DRAIN"
+      (at 208.28 30.48 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (pin "1" (uuid "e3c84b28-97ea-5d41-a6c6-c734b9382914"))
+    (instances
+      (project
+        "fan-characterization-fixture"
+        (path "/40c81846-c604-5f80-a432-156beefa23ca" (reference "TP5") (unit 1)))))
+  (symbol
+    (lib_id "Connector:TestPoint")
+    (at 233.68 30.48 0)
+    (unit 1)
+    (in_bom yes)
+    (on_board yes)
+    (dnp no)
+    (uuid "3dbe44ea-393b-50f9-abd5-ebd27d65a3d4")
+    (property "Reference" "TP6" (at 234.95 27.305 0) (effects (font (size 1.27 1.27)) (justify left)))
+    (property
+      "Value"
+      "FAN_PWM_RAW"
+      (at 233.68 30.48 0)
+      (effects (font (size 1.27 1.27)) (justify left) hide))
+    (property
+      "Footprint"
+      "TestPoint:TestPoint_Keystone_5000-5004_Miniature"
+      (at 233.68 30.48 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (property "Datasheet" "~" (at 233.68 30.48 0) (effects (font (size 1.27 1.27)) hide))
+    (property "Status" "FINAL" (at 233.68 30.48 0) (effects (font (size 1.27 1.27)) hide))
+    (property
+      "Function"
+      "Test point FAN_PWM_RAW"
+      (at 233.68 30.48 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (pin "1" (uuid "0e37a978-0999-5817-b625-eb4d5adda7c0"))
+    (instances
+      (project
+        "fan-characterization-fixture"
+        (path "/40c81846-c604-5f80-a432-156beefa23ca" (reference "TP6") (unit 1)))))
+  (symbol
+    (lib_id "Connector:TestPoint")
+    (at 254 60.96 0)
+    (unit 1)
+    (in_bom yes)
+    (on_board yes)
+    (dnp no)
+    (uuid "8f7ab7af-e077-5704-b7c2-e6ef6bc171a4")
+    (property "Reference" "TP7" (at 255.27 57.785 0) (effects (font (size 1.27 1.27)) (justify left)))
+    (property "Value" "GND" (at 254 60.96 0) (effects (font (size 1.27 1.27)) (justify left) hide))
+    (property
+      "Footprint"
+      "TestPoint:TestPoint_Keystone_5000-5004_Miniature"
+      (at 254 60.96 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (property "Datasheet" "~" (at 254 60.96 0) (effects (font (size 1.27 1.27)) hide))
+    (property "Status" "FINAL" (at 254 60.96 0) (effects (font (size 1.27 1.27)) hide))
+    (property "Function" "Test point GND" (at 254 60.96 0) (effects (font (size 1.27 1.27)) hide))
+    (pin "1" (uuid "65ff83a9-aa82-5545-a0b9-3261cad47d00"))
+    (instances
+      (project
+        "fan-characterization-fixture"
+        (path "/40c81846-c604-5f80-a432-156beefa23ca" (reference "TP7") (unit 1)))))
+  (symbol
+    (lib_id "Jumper:Jumper_2_Open")
+    (at 304.8 43.18 0)
+    (unit 1)
+    (in_bom yes)
+    (on_board yes)
+    (dnp no)
+    (uuid "95d38fa7-b904-5cc9-8e81-270df6652796")
+    (property "Reference" "JP3" (at 304.8 38.1 0) (effects (font (size 1.27 1.27))))
+    (property "Value" "TACH_PU_EN" (at 304.8 46.99 0) (effects (font (size 1.27 1.27))))
+    (property
+      "Footprint"
+      "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical"
+      (at 304.8 43.18 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (property "Datasheet" "~" (at 304.8 43.18 0) (effects (font (size 1.27 1.27)) hide))
+    (property "Status" "FINAL" (at 304.8 43.18 0) (effects (font (size 1.27 1.27)) hide))
+    (property
+      "Function"
+      "Closed: R3 pulls raw tach to 3V3"
+      (at 304.8 43.18 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (property "Default" "OPEN" (at 304.8 43.18 0) (effects (font (size 1.27 1.27)) hide))
+    (pin "1" (uuid "f8e4ef74-270e-503f-bd5e-ad815d10fd14"))
+    (pin "2" (uuid "09732047-7ccf-56ab-94ff-eb143c5b1d1e"))
+    (instances
+      (project
+        "fan-characterization-fixture"
+        (path "/40c81846-c604-5f80-a432-156beefa23ca" (reference "JP3") (unit 1)))))
+  (symbol
+    (lib_id "Device:R")
+    (at 326.39 43.18 90)
+    (unit 1)
+    (in_bom yes)
+    (on_board yes)
+    (dnp no)
+    (uuid "6b090135-fdd3-5d76-89d2-a397efdcebb2")
+    (property "Reference" "R3" (at 326.39 40.64 90) (effects (font (size 1.27 1.27))))
+    (property "Value" "10k" (at 326.39 45.72 90) (effects (font (size 1.27 1.27))))
+    (property
+      "Footprint"
+      "Resistor_SMD:R_0805_2012Metric"
+      (at 326.39 43.18 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (property "Datasheet" "~" (at 326.39 43.18 0) (effects (font (size 1.27 1.27)) hide))
+    (property "Status" "PROVISIONAL" (at 326.39 43.18 0) (effects (font (size 1.27 1.27)) hide))
+    (property
+      "Function"
+      "External tach pull-up to 3V3 (0.33 mA vs 5 mA IC max)"
+      (at 326.39 43.18 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (pin "1" (uuid "a3558ae4-1b31-533b-8e6f-279009de41db"))
+    (pin "2" (uuid "5ef882b4-3c98-5dd4-abb4-b77398ebccdb"))
+    (instances
+      (project
+        "fan-characterization-fixture"
+        (path "/40c81846-c604-5f80-a432-156beefa23ca" (reference "R3") (unit 1)))))
+  (symbol
+    (lib_id "Jumper:Jumper_2_Open")
+    (at 304.8 68.58 0)
+    (unit 1)
+    (in_bom yes)
+    (on_board yes)
+    (dnp no)
+    (uuid "eca214bb-30f9-568a-a357-344367fe26f8")
+    (property "Reference" "JP4" (at 304.8 63.5 0) (effects (font (size 1.27 1.27))))
+    (property "Value" "TACH_GPIO_EN" (at 304.8 72.39 0) (effects (font (size 1.27 1.27))))
+    (property
+      "Footprint"
+      "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical"
+      (at 304.8 68.58 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (property "Datasheet" "~" (at 304.8 68.58 0) (effects (font (size 1.27 1.27)) hide))
+    (property "Status" "FINAL" (at 304.8 68.58 0) (effects (font (size 1.27 1.27)) hide))
+    (property
+      "Function"
+      "Open: raw tach isolated from R4/D1/R5 and the GPIO"
+      (at 304.8 68.58 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (property "Default" "OPEN" (at 304.8 68.58 0) (effects (font (size 1.27 1.27)) hide))
+    (pin "1" (uuid "4f5e1230-b064-56ca-829b-9bf853e6533b"))
+    (pin "2" (uuid "2b8cab68-350e-51a8-8a66-78b950355eb6"))
+    (instances
+      (project
+        "fan-characterization-fixture"
+        (path "/40c81846-c604-5f80-a432-156beefa23ca" (reference "JP4") (unit 1)))))
+  (symbol
+    (lib_id "Device:R")
+    (at 326.39 68.58 90)
+    (unit 1)
+    (in_bom yes)
+    (on_board yes)
+    (dnp no)
+    (uuid "ea23a7dd-5795-5771-b0e9-e72c96075ead")
+    (property "Reference" "R4" (at 326.39 66.04 90) (effects (font (size 1.27 1.27))))
+    (property "Value" "22k" (at 326.39 71.12 90) (effects (font (size 1.27 1.27))))
+    (property
+      "Footprint"
+      "Resistor_SMD:R_0805_2012Metric"
+      (at 326.39 68.58 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (property "Datasheet" "~" (at 326.39 68.58 0) (effects (font (size 1.27 1.27)) hide))
+    (property "Status" "PROVISIONAL" (at 326.39 68.58 0) (effects (font (size 1.27 1.27)) hide))
+    (property
+      "Function"
+      "Series protection: limits clamp/back-power current to ~1.2 mA at 26.4 V"
+      (at 326.39 68.58 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (pin "1" (uuid "ad125f81-825d-5350-865c-529088783c98"))
+    (pin "2" (uuid "02529255-6511-52ab-8599-6b3846f24122"))
+    (instances
+      (project
+        "fan-characterization-fixture"
+        (path "/40c81846-c604-5f80-a432-156beefa23ca" (reference "R4") (unit 1)))))
+  (symbol
+    (lib_id "Connector:TestPoint")
+    (at 287.02 63.5 180)
+    (unit 1)
+    (in_bom yes)
+    (on_board yes)
+    (dnp no)
+    (uuid "6e2de640-8c82-53a6-8f87-d8180c7a8dd9")
+    (property "Reference" "TP8" (at 290.195 67.945 0) (effects (font (size 1.27 1.27))))
+    (property "Value" "FAN_TACH_RAW" (at 287.02 63.5 0) (effects (font (size 1.27 1.27)) hide))
+    (property
+      "Footprint"
+      "TestPoint:TestPoint_Keystone_5000-5004_Miniature"
+      (at 287.02 63.5 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (property "Datasheet" "~" (at 287.02 63.5 0) (effects (font (size 1.27 1.27)) hide))
+    (property "Status" "FINAL" (at 287.02 63.5 0) (effects (font (size 1.27 1.27)) hide))
+    (property
+      "Function"
+      "Test point FAN_TACH_RAW"
+      (at 287.02 63.5 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (pin "1" (uuid "4d597e07-d81e-52fc-93fa-5e831980f0ab"))
+    (instances
+      (project
+        "fan-characterization-fixture"
+        (path "/40c81846-c604-5f80-a432-156beefa23ca" (reference "TP8") (unit 1)))))
+  (symbol
+    (lib_id "Device:R")
+    (at 340.36 78.74 0)
+    (unit 1)
+    (in_bom yes)
+    (on_board yes)
+    (dnp no)
+    (uuid "e9dd1c45-a655-5746-8591-818dd221e510")
+    (property "Reference" "R5" (at 342.9 77.47 0) (effects (font (size 1.27 1.27)) (justify left)))
+    (property "Value" "470k" (at 342.9 80.01 0) (effects (font (size 1.27 1.27)) (justify left)))
+    (property
+      "Footprint"
+      "Resistor_SMD:R_0805_2012Metric"
+      (at 340.36 78.74 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (property "Datasheet" "~" (at 340.36 78.74 0) (effects (font (size 1.27 1.27)) hide))
+    (property "Status" "PROVISIONAL" (at 340.36 78.74 0) (effects (font (size 1.27 1.27)) hide))
+    (property
+      "Function"
+      "Holds TACH_GPIO low when JP4 is open"
+      (at 340.36 78.74 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (pin "1" (uuid "ef58d0e3-2de0-5b0a-a036-95abe750cea3"))
+    (pin "2" (uuid "627ba648-35b7-5b37-8bca-bebf54640a25"))
+    (instances
+      (project
+        "fan-characterization-fixture"
+        (path "/40c81846-c604-5f80-a432-156beefa23ca" (reference "R5") (unit 1)))))
+  (symbol
+    (lib_id "Diode:BAT54S")
+    (at 358.14 60.96 0)
+    (unit 1)
+    (in_bom yes)
+    (on_board yes)
+    (dnp no)
+    (uuid "a2bb8f69-12fe-50fa-9747-28a02b682306")
+    (property "Reference" "D1" (at 358.14 53.34 0) (effects (font (size 1.27 1.27))))
+    (property "Value" "BAT54S" (at 358.14 55.88 0) (effects (font (size 1.27 1.27))))
+    (property
+      "Footprint"
+      "Package_TO_SOT_SMD:SOT-23"
+      (at 358.14 60.96 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (property "Datasheet" "~" (at 358.14 60.96 0) (effects (font (size 1.27 1.27)) hide))
+    (property "Status" "PROVISIONAL" (at 358.14 60.96 0) (effects (font (size 1.27 1.27)) hide))
+    (property
+      "Function"
+      "Schottky clamp of TACH_GPIO to GND and 3V3"
+      (at 358.14 60.96 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (pin "1" (uuid "8eeb08c7-b890-5efb-9b9f-63b27954db31"))
+    (pin "3" (uuid "fd338d0b-ad43-5122-a73b-a9240e176f3b"))
+    (pin "2" (uuid "dcba9f22-6442-519e-b66c-40eda6246c10"))
+    (instances
+      (project
+        "fan-characterization-fixture"
+        (path "/40c81846-c604-5f80-a432-156beefa23ca" (reference "D1") (unit 1)))))
+  (symbol
+    (lib_id "Device:C")
+    (at 375.92 78.74 0)
+    (unit 1)
+    (in_bom yes)
+    (on_board yes)
+    (dnp yes)
+    (uuid "aef61e7f-cc5e-52cd-ab21-4d07369f4cd3")
+    (property "Reference" "C2" (at 378.46 77.47 0) (effects (font (size 1.27 1.27)) (justify left)))
+    (property "Value" "DNP" (at 378.46 80.01 0) (effects (font (size 1.27 1.27)) (justify left)))
+    (property
+      "Footprint"
+      "Capacitor_SMD:C_0805_2012Metric"
+      (at 375.92 78.74 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (property "Datasheet" "~" (at 375.92 78.74 0) (effects (font (size 1.27 1.27)) hide))
+    (property "Status" "DNP/TBD" (at 375.92 78.74 0) (effects (font (size 1.27 1.27)) hide))
+    (property
+      "Function"
+      "Footprint only for a later glitch filter; value from scope data"
+      (at 375.92 78.74 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (pin "1" (uuid "4cc8435c-6d05-56c0-a8cd-a1857f019745"))
+    (pin "2" (uuid "87829c1a-6497-52f1-837d-d0900d9483b0"))
+    (instances
+      (project
+        "fan-characterization-fixture"
+        (path "/40c81846-c604-5f80-a432-156beefa23ca" (reference "C2") (unit 1)))))
+  (symbol
+    (lib_id "Connector:TestPoint")
+    (at 386.08 60.96 0)
+    (unit 1)
+    (in_bom yes)
+    (on_board yes)
+    (dnp no)
+    (uuid "a40f6c5f-c4d8-54cf-b212-1ead56eb35f7")
+    (property "Reference" "TP9" (at 387.35 57.785 0) (effects (font (size 1.27 1.27)) (justify left)))
+    (property
+      "Value"
+      "TACH_GPIO"
+      (at 386.08 60.96 0)
+      (effects (font (size 1.27 1.27)) (justify left) hide))
+    (property
+      "Footprint"
+      "TestPoint:TestPoint_Keystone_5000-5004_Miniature"
+      (at 386.08 60.96 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (property "Datasheet" "~" (at 386.08 60.96 0) (effects (font (size 1.27 1.27)) hide))
+    (property "Status" "FINAL" (at 386.08 60.96 0) (effects (font (size 1.27 1.27)) hide))
+    (property
+      "Function"
+      "Test point TACH_GPIO"
+      (at 386.08 60.96 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (pin "1" (uuid "7523879f-9a70-50db-87c8-2fcfdfbec11c"))
+    (instances
+      (project
+        "fan-characterization-fixture"
+        (path "/40c81846-c604-5f80-a432-156beefa23ca" (reference "TP9") (unit 1)))))
+  (symbol
+    (lib_id "Connector:TestPoint")
+    (at 386.08 91.44 0)
+    (unit 1)
+    (in_bom yes)
+    (on_board yes)
+    (dnp no)
+    (uuid "4389bbd6-1d9b-543c-b781-a6d12fbd9326")
+    (property "Reference" "TP10" (at 387.35 88.265 0) (effects (font (size 1.27 1.27)) (justify left)))
+    (property "Value" "3V3" (at 386.08 91.44 0) (effects (font (size 1.27 1.27)) (justify left) hide))
+    (property
+      "Footprint"
+      "TestPoint:TestPoint_Keystone_5000-5004_Miniature"
+      (at 386.08 91.44 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (property "Datasheet" "~" (at 386.08 91.44 0) (effects (font (size 1.27 1.27)) hide))
+    (property "Status" "FINAL" (at 386.08 91.44 0) (effects (font (size 1.27 1.27)) hide))
+    (property "Function" "Test point 3V3" (at 386.08 91.44 0) (effects (font (size 1.27 1.27)) hide))
+    (pin "1" (uuid "012c19a3-6328-5c25-9d75-0c3d2f999fc7"))
+    (instances
+      (project
+        "fan-characterization-fixture"
+        (path "/40c81846-c604-5f80-a432-156beefa23ca" (reference "TP10") (unit 1)))))
+  (symbol
+    (lib_id "Connector:TestPoint")
+    (at 398.78 91.44 0)
+    (unit 1)
+    (in_bom yes)
+    (on_board yes)
+    (dnp no)
+    (uuid "d9ca34ba-eb68-5685-aec7-92b4c0f24bc6")
+    (property "Reference" "TP11" (at 400.05 88.265 0) (effects (font (size 1.27 1.27)) (justify left)))
+    (property "Value" "GND" (at 398.78 91.44 0) (effects (font (size 1.27 1.27)) (justify left) hide))
+    (property
+      "Footprint"
+      "TestPoint:TestPoint_Keystone_5000-5004_Miniature"
+      (at 398.78 91.44 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (property "Datasheet" "~" (at 398.78 91.44 0) (effects (font (size 1.27 1.27)) hide))
+    (property "Status" "FINAL" (at 398.78 91.44 0) (effects (font (size 1.27 1.27)) hide))
+    (property "Function" "Test point GND" (at 398.78 91.44 0) (effects (font (size 1.27 1.27)) hide))
+    (pin "1" (uuid "cbeea541-a50c-5792-8bdd-73c347e07f58"))
+    (instances
+      (project
+        "fan-characterization-fixture"
+        (path "/40c81846-c604-5f80-a432-156beefa23ca" (reference "TP11") (unit 1)))))
+  (symbol
+    (lib_id "Connector:Screw_Terminal_01x02")
+    (at 43.18 157.48 0)
+    (unit 1)
+    (in_bom yes)
+    (on_board yes)
+    (dnp no)
+    (uuid "df61572d-a88c-5045-a8af-9d7b74ec9861")
+    (property "Reference" "J2" (at 40.64 151.13 0) (effects (font (size 1.27 1.27)) (justify left)))
+    (property "Value" "BENCH_PSU" (at 40.64 163.83 0) (effects (font (size 1.27 1.27)) (justify left)))
+    (property
+      "Footprint"
+      "TerminalBlock_Phoenix:TerminalBlock_Phoenix_MKDS-1,5-2-5.08_1x02_P5.08mm_Horizontal"
+      (at 43.18 157.48 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (property "Datasheet" "~" (at 43.18 157.48 0) (effects (font (size 1.27 1.27)) hide))
+    (property "Status" "PROVISIONAL" (at 43.18 157.48 0) (effects (font (size 1.27 1.27)) hide))
+    (property
+      "Function"
+      "Current-limited 24 V bench supply. Pin 1 BENCH_24V, pin 2 BENCH_GND"
+      (at 43.18 157.48 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (pin "1" (uuid "54c36625-caff-55db-b9bc-50d4990934a3"))
+    (pin "2" (uuid "4d2b7908-a437-568e-ae0d-1611b1196acb"))
+    (instances
+      (project
+        "fan-characterization-fixture"
+        (path "/40c81846-c604-5f80-a432-156beefa23ca" (reference "J2") (unit 1)))))
+  (symbol
+    (lib_id "Device:Fuse")
+    (at 76.2 154.94 90)
+    (unit 1)
+    (in_bom yes)
+    (on_board yes)
+    (dnp no)
+    (uuid "2617b277-4d18-5dd5-b4ef-32a84b6f4454")
+    (property "Reference" "F1" (at 76.2 152.4 90) (effects (font (size 1.27 1.27))))
+    (property "Value" "Fuse TBD" (at 76.2 157.48 90) (effects (font (size 1.27 1.27))))
+    (property
+      "Footprint"
+      "Fuse:Fuseholder_Clip-5x20mm_Littelfuse_111_Inline_P20.00x5.00mm_D1.05mm_Horizontal"
+      (at 76.2 154.94 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (property "Datasheet" "~" (at 76.2 154.94 0) (effects (font (size 1.27 1.27)) hide))
+    (property "Status" "DNP/TBD" (at 76.2 154.94 0) (effects (font (size 1.27 1.27)) hide))
+    (property
+      "Function"
+      "5x20 mm holder; element rating TBD until startup/locked-rotor current is measured"
+      (at 76.2 154.94 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (pin "1" (uuid "47a3a793-6646-5421-9074-e5f2daa7cc02"))
+    (pin "2" (uuid "82d0716d-c1d7-599f-bac5-7d1d93ae445a"))
+    (instances
+      (project
+        "fan-characterization-fixture"
+        (path "/40c81846-c604-5f80-a432-156beefa23ca" (reference "F1") (unit 1)))))
+  (symbol
+    (lib_id "Connector:TestPoint")
+    (at 66.04 147.32 0)
+    (unit 1)
+    (in_bom yes)
+    (on_board yes)
+    (dnp no)
+    (uuid "9b652c7e-818e-54fa-bf37-7ca91874168a")
+    (property "Reference" "TP12" (at 67.31 144.145 0) (effects (font (size 1.27 1.27)) (justify left)))
+    (property
+      "Value"
+      "BENCH_24V"
+      (at 66.04 147.32 0)
+      (effects (font (size 1.27 1.27)) (justify left) hide))
+    (property
+      "Footprint"
+      "TestPoint:TestPoint_Keystone_5000-5004_Miniature"
+      (at 66.04 147.32 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (property "Datasheet" "~" (at 66.04 147.32 0) (effects (font (size 1.27 1.27)) hide))
+    (property "Status" "FINAL" (at 66.04 147.32 0) (effects (font (size 1.27 1.27)) hide))
+    (property
+      "Function"
+      "Test point BENCH_24V"
+      (at 66.04 147.32 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (pin "1" (uuid "0212a617-8b40-5db3-95c2-4d761d236157"))
+    (instances
+      (project
+        "fan-characterization-fixture"
+        (path "/40c81846-c604-5f80-a432-156beefa23ca" (reference "TP12") (unit 1)))))
+  (symbol
+    (lib_id "Jumper:Jumper_2_Bridged")
+    (at 111.76 154.94 0)
+    (unit 1)
+    (in_bom yes)
+    (on_board yes)
+    (dnp no)
+    (uuid "3a817eec-93fa-5043-9dfd-00dea44ea735")
+    (property "Reference" "JP5" (at 111.76 149.86 0) (effects (font (size 1.27 1.27))))
+    (property "Value" "I_MEAS" (at 111.76 158.75 0) (effects (font (size 1.27 1.27))))
+    (property
+      "Footprint"
+      "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical"
+      (at 111.76 154.94 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (property "Datasheet" "~" (at 111.76 154.94 0) (effects (font (size 1.27 1.27)) hide))
+    (property "Status" "PROVISIONAL" (at 111.76 154.94 0) (effects (font (size 1.27 1.27)) hide))
+    (property
+      "Function"
+      "Link fitted, or remove and insert a series ammeter"
+      (at 111.76 154.94 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (property "Default" "FITTED" (at 111.76 154.94 0) (effects (font (size 1.27 1.27)) hide))
+    (pin "1" (uuid "aed49a53-157b-5e09-8670-c01825cd36e6"))
+    (pin "2" (uuid "48794b79-0a81-532b-b4df-18f73aff16e7"))
+    (instances
+      (project
+        "fan-characterization-fixture"
+        (path "/40c81846-c604-5f80-a432-156beefa23ca" (reference "JP5") (unit 1)))))
+  (symbol
+    (lib_id "Device:R")
+    (at 99.06 165.1 0)
+    (unit 1)
+    (in_bom yes)
+    (on_board yes)
+    (dnp no)
+    (uuid "b37a1dba-0f18-5cdc-95a2-673e31cef2ec")
+    (property "Reference" "R6" (at 101.6 163.83 0) (effects (font (size 1.27 1.27)) (justify left)))
+    (property "Value" "10k" (at 101.6 166.37 0) (effects (font (size 1.27 1.27)) (justify left)))
+    (property
+      "Footprint"
+      "Resistor_SMD:R_0805_2012Metric"
+      (at 99.06 165.1 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (property "Datasheet" "~" (at 99.06 165.1 0) (effects (font (size 1.27 1.27)) hide))
+    (property "Status" "PROVISIONAL" (at 99.06 165.1 0) (effects (font (size 1.27 1.27)) hide))
+    (property "Function" "LED current limit" (at 99.06 165.1 0) (effects (font (size 1.27 1.27)) hide))
+    (pin "1" (uuid "ac7b9662-07bc-5881-a1cd-acf3cd9a7d0d"))
+    (pin "2" (uuid "45248dc8-1d93-5211-91cc-dcab3f82d996"))
+    (instances
+      (project
+        "fan-characterization-fixture"
+        (path "/40c81846-c604-5f80-a432-156beefa23ca" (reference "R6") (unit 1)))))
+  (symbol
+    (lib_id "Device:LED")
+    (at 99.06 180.34 90)
+    (unit 1)
+    (in_bom yes)
+    (on_board yes)
+    (dnp no)
+    (uuid "3b1df940-26b5-5a43-a0cb-ed63bb90c220")
+    (property "Reference" "D2" (at 105.41 179.07 90) (effects (font (size 1.27 1.27))))
+    (property "Value" "LED green" (at 106.68 181.61 90) (effects (font (size 1.27 1.27))))
+    (property
+      "Footprint"
+      "LED_SMD:LED_0805_2012Metric"
+      (at 99.06 180.34 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (property "Datasheet" "~" (at 99.06 180.34 0) (effects (font (size 1.27 1.27)) hide))
+    (property "Status" "PROVISIONAL" (at 99.06 180.34 0) (effects (font (size 1.27 1.27)) hide))
+    (property
+      "Function"
+      "24 V present (upstream of I_MEAS)"
+      (at 99.06 180.34 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (pin "1" (uuid "e3a228ff-c0ae-5b3e-a04d-472a0e688da3"))
+    (pin "2" (uuid "a16851a4-6d22-59cf-b867-afa8e513e1d1"))
+    (instances
+      (project
+        "fan-characterization-fixture"
+        (path "/40c81846-c604-5f80-a432-156beefa23ca" (reference "D2") (unit 1)))))
+  (symbol
+    (lib_id "Connector:TestPoint")
+    (at 124.46 147.32 0)
+    (unit 1)
+    (in_bom yes)
+    (on_board yes)
+    (dnp no)
+    (uuid "30282521-2d51-5d4d-93d3-43b79d129a14")
+    (property
+      "Reference"
+      "TP13"
+      (at 125.73 144.145 0)
+      (effects (font (size 1.27 1.27)) (justify left)))
+    (property
+      "Value"
+      "FAN_24V"
+      (at 124.46 147.32 0)
+      (effects (font (size 1.27 1.27)) (justify left) hide))
+    (property
+      "Footprint"
+      "TestPoint:TestPoint_Keystone_5000-5004_Miniature"
+      (at 124.46 147.32 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (property "Datasheet" "~" (at 124.46 147.32 0) (effects (font (size 1.27 1.27)) hide))
+    (property "Status" "FINAL" (at 124.46 147.32 0) (effects (font (size 1.27 1.27)) hide))
+    (property
+      "Function"
+      "Test point FAN_24V"
+      (at 124.46 147.32 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (pin "1" (uuid "842824fe-a5e8-5f14-94f7-4c239a834af1"))
+    (instances
+      (project
+        "fan-characterization-fixture"
+        (path "/40c81846-c604-5f80-a432-156beefa23ca" (reference "TP13") (unit 1)))))
+  (symbol
+    (lib_id "Device:C_Polarized")
+    (at 137.16 165.1 0)
+    (unit 1)
+    (in_bom yes)
+    (on_board yes)
+    (dnp yes)
+    (uuid "25fecdef-4c1d-5e5f-94be-2e80dc28492b")
+    (property "Reference" "C1" (at 139.7 163.83 0) (effects (font (size 1.27 1.27)) (justify left)))
+    (property "Value" "DNP" (at 139.7 166.37 0) (effects (font (size 1.27 1.27)) (justify left)))
+    (property
+      "Footprint"
+      "Capacitor_THT:CP_Radial_D6.3mm_P2.50mm"
+      (at 137.16 165.1 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (property "Datasheet" "~" (at 137.16 165.1 0) (effects (font (size 1.27 1.27)) hide))
+    (property "Status" "DNP/TBD" (at 137.16 165.1 0) (effects (font (size 1.27 1.27)) hide))
+    (property
+      "Function"
+      "Optional bulk capacitor at the fan terminal; fitted only for a measured need"
+      (at 137.16 165.1 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (pin "1" (uuid "c17f97da-c30f-514f-b880-5752029f68a8"))
+    (pin "2" (uuid "c31c65ad-723d-5fc0-8a33-0bc23b4fb3ec"))
+    (instances
+      (project
+        "fan-characterization-fixture"
+        (path "/40c81846-c604-5f80-a432-156beefa23ca" (reference "C1") (unit 1)))))
+  (symbol
+    (lib_id "Connector:TestPoint")
+    (at 165.1 165.1 0)
+    (unit 1)
+    (in_bom yes)
+    (on_board yes)
+    (dnp no)
+    (uuid "b2beeac0-a002-5c80-92b1-f3e5e41b093d")
+    (property
+      "Reference"
+      "TP14"
+      (at 166.37 161.925 0)
+      (effects (font (size 1.27 1.27)) (justify left)))
+    (property
+      "Value"
+      "FAN_GND"
+      (at 165.1 165.1 0)
+      (effects (font (size 1.27 1.27)) (justify left) hide))
+    (property
+      "Footprint"
+      "TestPoint:TestPoint_Keystone_5000-5004_Miniature"
+      (at 165.1 165.1 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (property "Datasheet" "~" (at 165.1 165.1 0) (effects (font (size 1.27 1.27)) hide))
+    (property "Status" "FINAL" (at 165.1 165.1 0) (effects (font (size 1.27 1.27)) hide))
+    (property
+      "Function"
+      "Test point FAN_GND"
+      (at 165.1 165.1 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (pin "1" (uuid "32d768ec-c53a-5fae-8c02-8329be5739ac"))
+    (instances
+      (project
+        "fan-characterization-fixture"
+        (path "/40c81846-c604-5f80-a432-156beefa23ca" (reference "TP14") (unit 1)))))
+  (symbol
+    (lib_id "Device:NetTie_2")
+    (at 53.34 198.12 0)
+    (unit 1)
+    (in_bom no)
+    (on_board yes)
+    (dnp no)
+    (uuid "8eb455fd-6d5a-5d2a-b10d-941ab54a1d24")
+    (property "Reference" "NT1" (at 53.34 195.58 0) (effects (font (size 1.27 1.27))))
+    (property "Value" "NetTie" (at 53.34 200.66 0) (effects (font (size 1.27 1.27))))
+    (property
+      "Footprint"
+      "NetTie:NetTie-2_SMD_Pad2.0mm"
+      (at 53.34 198.12 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (property "Datasheet" "~" (at 53.34 198.12 0) (effects (font (size 1.27 1.27)) hide))
+    (property "Status" "FINAL" (at 53.34 198.12 0) (effects (font (size 1.27 1.27)) hide))
+    (property
+      "Function"
+      "Star point: fan power-return branch"
+      (at 53.34 198.12 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (pin "1" (uuid "02690403-d5b8-5709-9543-a1918ad15106"))
+    (pin "2" (uuid "a98ebc2f-085d-560b-b0f4-6430b3e51154"))
+    (instances
+      (project
+        "fan-characterization-fixture"
+        (path "/40c81846-c604-5f80-a432-156beefa23ca" (reference "NT1") (unit 1)))))
+  (symbol
+    (lib_id "Device:NetTie_2")
+    (at 53.34 213.36 0)
+    (unit 1)
+    (in_bom no)
+    (on_board yes)
+    (dnp no)
+    (uuid "13705c46-8ebb-5fc0-8fd7-eb0a927aa0fa")
+    (property "Reference" "NT2" (at 53.34 210.82 0) (effects (font (size 1.27 1.27))))
+    (property "Value" "NetTie" (at 53.34 215.9 0) (effects (font (size 1.27 1.27))))
+    (property
+      "Footprint"
+      "NetTie:NetTie-2_SMD_Pad0.5mm"
+      (at 53.34 213.36 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (property "Datasheet" "~" (at 53.34 213.36 0) (effects (font (size 1.27 1.27)) hide))
+    (property "Status" "FINAL" (at 53.34 213.36 0) (effects (font (size 1.27 1.27)) hide))
+    (property
+      "Function"
+      "Star point: signal/controller reference branch"
+      (at 53.34 213.36 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (pin "1" (uuid "a7493c33-2bbd-5dff-a9e0-8cb9d23e3174"))
+    (pin "2" (uuid "3b5a2def-cc5e-51d0-a6aa-ee9e661147cd"))
+    (instances
+      (project
+        "fan-characterization-fixture"
+        (path "/40c81846-c604-5f80-a432-156beefa23ca" (reference "NT2") (unit 1)))))
+  (symbol
+    (lib_id "Connector:Screw_Terminal_01x04")
+    (at 251.46 157.48 0)
+    (unit 1)
+    (in_bom yes)
+    (on_board yes)
+    (dnp no)
+    (uuid "94d1285d-9996-5318-98d1-9f697158dce9")
+    (property "Reference" "J3" (at 248.92 151.13 0) (effects (font (size 1.27 1.27)) (justify left)))
+    (property "Value" "FAN_DUT" (at 248.92 168.91 0) (effects (font (size 1.27 1.27)) (justify left)))
+    (property
+      "Footprint"
+      "TerminalBlock_Phoenix:TerminalBlock_Phoenix_MKDS-1,5-4-5.08_1x04_P5.08mm_Horizontal"
+      (at 251.46 157.48 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (property "Datasheet" "~" (at 251.46 157.48 0) (effects (font (size 1.27 1.27)) hide))
+    (property "Status" "PROVISIONAL" (at 251.46 157.48 0) (effects (font (size 1.27 1.27)) hide))
+    (property
+      "Function"
+      "Fixture-side terminal, one lead per position by VERIFIED function; the DUT lead order/colours are not assumed"
+      (at 251.46 157.48 0)
+      (effects (font (size 1.27 1.27)) hide))
+    (pin "1" (uuid "f995a3ab-cdd5-58a0-bbd8-42ab7095b103"))
+    (pin "2" (uuid "fa19eaa2-8791-5fae-b155-947a236d72ea"))
+    (pin "3" (uuid "94fe9174-18c9-5eff-929e-22649458048e"))
+    (pin "4" (uuid "06be40cd-8966-5e55-a44c-91ab12442483"))
+    (instances
+      (project
+        "fan-characterization-fixture"
+        (path "/40c81846-c604-5f80-a432-156beefa23ca" (reference "J3") (unit 1)))))
+  (sheet_instances (path "/" (page "1"))))
