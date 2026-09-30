@@ -95,8 +95,10 @@ calculated current was ≤ 2 mA.
 
 ## 6. Raw tach, before any pull-up or GPIO
 
-1. Power the controller's 3V3 now (operating rule), even if J1 is not yet
-   fully wired.
+1. Power the controller. Connect J1.3 to controller 3V3 and J1.4 to
+   controller GND, so the fixture's 3V3 rail is live before JP3 closes
+   (operating rule). Leave J1.1 (`MCU_PWM`) and J1.2 (`TACH_GPIO`) unwired
+   and JP1 open until step 7, item 5.
 2. Land the sensor lead on J3.4. Keep JP3 and JP4 open.
 3. Scope TP8 with the fan running. The drawing's sensor specification
    9D0001H202 says open collector: expect TP8 to float or sit near 0 V with
@@ -124,7 +126,8 @@ calculated current was ≤ 2 mA.
 4. Flash the fan-characterization image with the N8R8 bench overlay:
    - `GATE_GPIO=6`, `SINK_LEVEL=1`, `TACH_GPIO=7`
    - PPR 0, internal tach pull-up off
-5. Wire J1 and close JP1.
+5. Wire J1.1 and J1.2 to the controller (J1.3 and J1.4 are already wired from
+   step 6) and close JP1.
 6. Confirm the boot log shows the line released. Confirm TP4 stays at 0 V
    through reset, flashing, and a controller power cycle. Open JP3 before
    the power cycle and close it again once 3V3 is back (operating rule).
