@@ -148,7 +148,7 @@ class ContractTests(unittest.TestCase):
     def test_run_page_writes_only_through_the_run_api(self):
         page = _firmware_page("run_page")
         self.assertIn("fetch('/api/v1/runs',{method:'POST'", page)
-        self.assertIn("'/abort',{method:'POST'}", page)
+        self.assertIn("'/abort',{method:'POST'", page)
         self.assertEqual(page.count("method:'POST'"), 2)
         self.assertNotIn("/api/v1/network", page)
 

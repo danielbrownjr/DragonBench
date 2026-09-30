@@ -35,13 +35,30 @@ function page(device) {
   let now = 1000000;
   const intervals = [];
   const posts = [];
+  // Timers only fire from elapse(), so the existing scenarios, which never call
+  // it, behave exactly as before. A timed-out signal rejects a held request the
+  // way a browser fetch does.
+  const timers = [];
+  let statusGets = 0;
+  class FakeAbortController {
+    constructor() { this.signal = { aborted: false, listeners: [], addEventListener(t, fn) { this.listeners.push(fn); } }; }
+    abort() { if (this.signal.aborted) return; this.signal.aborted = true; this.signal.listeners.forEach(fn => fn()); }
+  }
   const reply = r => Promise.resolve({ ok: r.code >= 200 && r.code < 300, status: r.code, json: () => Promise.resolve(r.body) });
   const fetch = (url, opts) => {
+    if (url === '/api/v1/status') statusGets++;
     if (device.offline) return Promise.reject(new Error('offline'));
     if (opts && opts.method === 'POST') {
-      posts.push({ url, body: opts.body ? JSON.parse(opts.body) : null });
+      const post = { url, body: opts.body ? JSON.parse(opts.body) : null, signalled: !!opts.signal, aborted: false };
+      posts.push(post);
       const r = url === '/api/v1/runs' ? device.post : device.abort;
-      if (r === 'hold') return new Promise(resolve => { device.release = r2 => resolve(reply(r2)); });
+      if (r === 'hold') return new Promise((resolve, reject) => {
+        device.release = r2 => resolve(reply(r2));
+        if (opts.signal) opts.signal.addEventListener('abort', () => {
+          post.aborted = true;
+          reject(Object.assign(new Error('The operation was aborted.'), { name: 'AbortError' }));
+        });
+      });
       return reply(r);
     }
     if (url === '/api/v1/status') return reply({ code: 200, body: JSON.parse(JSON.stringify(device.status)) });
@@ -49,8 +66,10 @@ function page(device) {
     return reply({ code: 404, body: {} });
   };
   const run = new Function('document', 'fetch', 'setInterval', 'setTimeout', 'clearTimeout', 'AbortController', 'Date', PAGE);
-  run(document, fetch, fn => intervals.push(fn), () => 0, () => {},
-      class { constructor() { this.signal = {}; } abort() {} }, { now: () => now });
+  run(document, fetch, fn => intervals.push(fn),
+      (fn, ms) => timers.push({ fn, ms, due: now + ms, cleared: false }),
+      handle => { if (timers[handle - 1]) timers[handle - 1].cleared = true; },
+      FakeAbortController, { now: () => now });
   const buttons = () => {
     const out = {};
     el('run-workloads').children.forEach(row => row.children.forEach(c => {
@@ -66,6 +85,14 @@ function page(device) {
     async click(id) { const b = buttons()[id]; if (b && !b.disabled) b.listeners.click(); await flush(); },
     async forceClick(id) { buttons()[id].listeners.click(); await flush(); },
     async abort() { const a = el('run-abort'); if (!a.hidden && !a.disabled) a.listeners.click(); await flush(); },
+    // Let wall-clock time pass: due timers fire and the display refreshes, but the
+    // 2 s poll interval does not run, so any status request seen afterwards was
+    // made by the page itself.
+    async elapse(ms) {
+      now += ms;
+      timers.filter(t => !t.cleared && t.due <= now).forEach(t => { t.cleared = true; t.fn(); });
+      intervals[1](); await flush();
+    },
     snap() {
       const b = buttons();
       const disabled = {};
@@ -75,7 +102,9 @@ function page(device) {
         workload: el('run-workload').textContent, id: el('run-id').textContent,
         device: el('run-device').textContent, freshness: el('run-freshness').textContent,
         message: el('run-message').textContent, abortHidden: el('run-abort').hidden,
-        disabled, posts: posts.length,
+        disabled, posts: posts.length, abortDisabled: el('run-abort').disabled,
+        abortedPosts: posts.filter(x => x.aborted).length,
+        pendingTimers: timers.filter(t => !t.cleared).map(t => t.ms), statusGets,
       };
     },
   };
@@ -187,6 +216,36 @@ function device(status) { return { status, workloads: WORKLOADS, post: null, abo
     d.offline = false; d.status = st('idle', 'IDLE', '', 'none', { previous_reboot_run_id: 'r9' });
     await p.tick(2000); s.push(p.snap());
     out.reboot = { snaps: s, rows: p.rows() };
+  }
+  { // start request that never answers: the timeout ends STARTING and device state takes over
+    const d = device(IDLE); const p = page(d); await p.tick(0);
+    d.post = 'hold';
+    await p.click('CPU_STRESS'); const s = [p.snap()];
+    d.offline = true;
+    await p.elapse(3999); s.push(p.snap());
+    await p.elapse(1); s.push(p.snap());
+    await p.tick(2000); s.push(p.snap());
+    await p.tick(10000); s.push(p.snap());
+    d.offline = false; d.status = st('running', 'CPU_STRESS', 'r10', 'none');
+    await p.tick(2000); s.push(p.snap());
+    out.start_timeout = { snaps: s, post: p.posts[0] };
+  }
+  { // abort request that never answers while the device still reports the run
+    const d = device(st('running', 'IDLE', 'r11', 'none')); const p = page(d); await p.tick(0);
+    d.abort = 'hold';
+    await p.abort(); const s = [p.snap()];
+    await p.elapse(4000); s.push(p.snap());
+    d.abort = { code: 200, body: { run_id: 'r11', state: 'aborting' } };
+    await p.abort(); s.push(p.snap());
+    out.abort_timeout_running = { snaps: s, posts: p.posts };
+  }
+  { // abort request that reached the device but whose answer never came back
+    const d = device(st('running', 'IDLE', 'r12', 'none')); const p = page(d); await p.tick(0);
+    d.abort = 'hold';
+    await p.abort(); const s = [p.snap()];
+    d.status = st('aborting', 'IDLE', 'r12', 'none');
+    await p.elapse(4000); s.push(p.snap());
+    out.abort_timeout_landed = s;
   }
   process.stdout.write(JSON.stringify(out));
 })().catch(e => { console.error(e && e.stack || e); process.exit(1); });
@@ -363,6 +422,76 @@ class RunPageBehaviourTests(unittest.TestCase):
         self.assertButtons(back, False)
         reboot_row = next(r for r in self.out["reboot"]["rows"] if r.startswith("CONTROLLED_REBOOT"))
         self.assertIn("reboots the device", reboot_row)
+
+    def test_start_request_that_never_answers_times_out_into_device_state(self):
+        t = self.out["start_timeout"]
+        starting, just_before, timed_out, stale, lost, back = t["snaps"]
+        self.assertTrue(t["post"]["signalled"])
+        self.assertEqual(starting["status"], "starting")
+        self.assertEqual(starting["pendingTimers"], [4000])
+        self.assertButtons(starting, True)
+        # Still in flight one millisecond before the timeout.
+        self.assertEqual(just_before["status"], "starting")
+        self.assertEqual(just_before["abortedPosts"], 0)
+        # The timeout aborts the request, clears STARTING, and polls at once.
+        self.assertTrue(t["post"]["aborted"])
+        self.assertEqual(timed_out["abortedPosts"], 1)
+        self.assertNotEqual(timed_out["status"], "starting")
+        self.assertNotIn("FAIL", timed_out["state"])
+        self.assertIn("No response to the start request", timed_out["message"])
+        self.assertGreater(timed_out["statusGets"], just_before["statusGets"])
+        self.assertEqual(timed_out["posts"], 1)
+        # From here on only the device's own reports decide what is shown.
+        self.assertEqual(stale["state"], "STALE")
+        self.assertButtons(stale, True)
+        self.assertEqual(lost["state"], "DISCONNECTED")
+        self.assertButtons(lost, True)
+        self.assertEqual(back["status"], "running")
+        self.assertIn("CPU_STRESS", back["state"])
+        self.assertEqual(back["id"], "r10")
+        self.assertFalse(back["abortHidden"])
+
+    def test_abort_request_that_never_answers_times_out_and_can_be_retried(self):
+        t = self.out["abort_timeout_running"]
+        requested, timed_out, retried = t["snaps"]
+        self.assertTrue(t["posts"][0]["signalled"])
+        self.assertFalse(requested["abortHidden"])
+        self.assertTrue(requested["abortDisabled"])
+        self.assertEqual(requested["pendingTimers"], [4000])
+        self.assertTrue(t["posts"][0]["aborted"])
+        self.assertEqual(timed_out["abortedPosts"], 1)
+        self.assertIn("No response to the abort request", timed_out["message"])
+        self.assertGreater(timed_out["statusGets"], requested["statusGets"])
+        # The device still reports the run, so it stays RUNNING and Abort is back.
+        self.assertEqual(timed_out["status"], "running")
+        self.assertFalse(timed_out["abortHidden"])
+        self.assertFalse(timed_out["abortDisabled"])
+        self.assertEqual(retried["posts"], 2)
+        self.assertEqual(t["posts"][1]["url"], "/api/v1/runs/r11/abort")
+        self.assertIn("Abort requested for run r11", retried["message"])
+
+    def test_abort_timeout_defers_to_device_reported_state(self):
+        requested, timed_out = self.out["abort_timeout_landed"]
+        self.assertTrue(requested["abortDisabled"])
+        self.assertEqual(timed_out["abortedPosts"], 1)
+        self.assertEqual(timed_out["status"], "aborting")
+        self.assertTrue(timed_out["state"].startswith("ABORTING"), timed_out)
+        self.assertNotEqual(timed_out["status"], "aborted")
+        self.assertTrue(timed_out["abortHidden"])
+        self.assertFalse(timed_out["abortDisabled"])
+
+    def test_answered_requests_clear_their_timeout_without_aborting(self):
+        start = self.out["start_pass"]
+        self.assertEqual(start["snaps"][1]["pendingTimers"], [4000])
+        for snap in start["snaps"][3:]:
+            self.assertEqual(snap["pendingTimers"], [], snap)
+            self.assertEqual(snap["abortedPosts"], 0, snap)
+        abort = self.out["abort"]["snaps"]
+        self.assertEqual(abort[1]["pendingTimers"], [4000])
+        self.assertTrue(abort[1]["abortDisabled"])
+        for snap in abort[2:]:
+            self.assertEqual(snap["pendingTimers"], [], snap)
+            self.assertEqual(snap["abortedPosts"], 0, snap)
 
 
 if __name__ == "__main__":
