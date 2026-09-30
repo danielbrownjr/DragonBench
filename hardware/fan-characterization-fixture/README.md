@@ -261,8 +261,10 @@ changes:
    - RC with about 12 pF of pin and clamp capacitance is about 0.26 µs,
      negligible at tach rates.
 2. **An explicit bench operating rule.** The controller's 3V3 must be
-   **powered before JP3 or JP4 is closed and before fan power is applied**,
-   and removed only after fan power is off. This rule is on the sheet and in
+   **powered before JP3 or JP4 is closed**, and stay on while either is
+   closed and fan power is on. Before removing 3V3, turn fan power off or
+   open JP3 and JP4. Fan power with JP3 and JP4 both open needs no 3V3: the
+   raw tach lead then reaches only TP8. This rule is on the sheet and in
    BRINGUP.md.
 
 The R3 path in particular is not limited by R4. Its value stays 10 kΩ, as

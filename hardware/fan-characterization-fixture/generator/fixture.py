@@ -163,8 +163,8 @@ note(275.59, 86.36,
      '   2.475 V); low <= 0.76 V at VCE(sat) 0.8 V (VIL 0.825 V).',
      'Back-power if the tach lead is faulted to 26.4 V:',
      '   R4/D1 <= 1.2 mA, R3 (JP3) <= 2.7 mA into 3V3.',
-     'RULE: controller 3V3 ON before JP3/JP4 close and',
-     '   before fan power; off only after fan power is off.',
+     'RULE: controller 3V3 ON before JP3/JP4 close; keep it',
+     '   on until fan power is off or JP3/JP4 are open.',
      'C2 DNP (no glitch filter). Internal pull-up stays OFF.')
 
 # ================= 4. 24 V fan supply and ground topology   (main line y = 154.94)

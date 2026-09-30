@@ -21,11 +21,14 @@ case "${1:-}" in
   --update) MODE=update ;;
   *) echo "usage: $0 [--update]" >&2; exit 2 ;;
 esac
+# Private to this user (mktemp's 0700); the container runs as the same uid, so it can write here.
 OUT="$(mktemp -d "${TMPDIR:-/tmp}/fixture-verify.XXXXXX")"
-chmod 777 "$OUT"
+# Check mode only reads the fixture; --update copies regenerated files back into it.
+FIXTURE_MOUNT="$HERE:/fixture:ro"
+[ "$MODE" = update ] && FIXTURE_MOUNT="$HERE:/fixture"
 
 docker run --rm --network none -u "$(id -u):$(id -g)" \
-  -v "$HERE:/fixture" -v "$OUT:/out" -e MODE="$MODE" -e NAME="$NAME" \
+  -v "$FIXTURE_MOUNT" -v "$OUT:/out" -e MODE="$MODE" -e NAME="$NAME" \
   "$IMAGE" bash -euo pipefail -c '
     # kicad-cli needs the image'\''s global library tables; give any uid a writable HOME with them.
     export HOME=/tmp/home && mkdir -p $HOME/.config/kicad/9.0

@@ -13,9 +13,11 @@ one removes an unknown that the next depends on.
 
 **Operating rule (tach back-power)**
 
-- The controller's 3V3 must be powered **before JP3 or JP4 is closed and
-  before fan power is applied**.
-- Remove 3V3 only after fan power is off.
+- The controller's 3V3 must be powered **before JP3 or JP4 is closed**.
+- Keep 3V3 on while JP3 or JP4 is closed and fan power is on. Before
+  removing 3V3, turn fan power off or open JP3 and JP4.
+- Fan power with JP3 and JP4 both open is allowed without 3V3: the raw tach
+  lead then reaches only TP8 and has no path to the 3V3 rail.
 - See README "Tach protection and back-power".
 
 ## 1. Identify the specimen
@@ -123,7 +125,8 @@ calculated current was ≤ 2 mA.
    - PPR 0, internal tach pull-up off
 5. Wire J1 and close JP1.
 6. Confirm the boot log shows the line released. Confirm TP4 stays at 0 V
-   through reset, flashing, and a controller power cycle.
+   through reset, flashing, and a controller power cycle. Open JP3 before
+   the power cycle and close it again once 3V3 is back (operating rule).
 7. Run `FAN_PWM_HOLD` at 0 %, a mid duty, and 100 %. For each, compare the
    TP4/TP6 captures with the reported `applied_sink_duty_pct`.
 

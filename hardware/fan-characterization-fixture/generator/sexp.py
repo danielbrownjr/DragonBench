@@ -5,6 +5,10 @@ import os, re
 SYMBOL_DIR = os.environ.get('KICAD_SYMBOL_DIR', '/usr/share/kicad/symbols')
 TOK = re.compile(r'\s*(?:(\()|(\))|("(?:[^"\\]|\\.)*")|([^\s()"]+))')
 class Sym(str): pass
+# One pass over the escapes q() writes; any other escape is kept as written.
+ESC = re.compile(r'\\(.)', re.S)
+UNESC = {'\\': '\\', '"': '"', 'n': '\n'}
+def unq(s): return ESC.sub(lambda m: UNESC.get(m.group(1), m.group(0)), s)
 def parse(text):
     pos = 0; stack = [[]]
     while True:
@@ -14,7 +18,7 @@ def parse(text):
         if m.group(1): stack.append([])
         elif m.group(2):
             l = stack.pop(); stack[-1].append(l)
-        elif m.group(3): stack[-1].append(m.group(3)[1:-1].replace('\\"', '"').replace('\\\\', '\\'))
+        elif m.group(3): stack[-1].append(unq(m.group(3)[1:-1]))
         else: stack[-1].append(Sym(m.group(4)))
     return stack[0]
 def q(s): return '"' + s.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '\\n') + '"'

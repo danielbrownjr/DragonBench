@@ -1483,7 +1483,7 @@
     (effects (font (size 1.27 1.27)) (justify left top))
     (uuid "03081c9f-7a63-592d-a9eb-181d2c53f76e"))
   (text
-    "Sensor, Sanyo spec 9D0001H202: open collector,\n   VCE <= 27.6 V, IC <= 5 mA, VCE(sat) <= 0.8 V.\n   Spec suggests 2 pulses/rev; configured PPR stays 0\n   (unknown) until an optical RPM check on the specimen.\nDefault JP3 OPEN, JP4 OPEN: raw tach sees only TP8.\nJP3: R3 10k to 3V3 -> 0.33 mA sink (IC max 5 mA).\nJP4: R4 22k, D1 clamp, R5 470k. High ~3.09 V (VIH\n   2.475 V); low <= 0.76 V at VCE(sat) 0.8 V (VIL 0.825 V).\nBack-power if the tach lead is faulted to 26.4 V:\n   R4/D1 <= 1.2 mA, R3 (JP3) <= 2.7 mA into 3V3.\nRULE: controller 3V3 ON before JP3/JP4 close and\n   before fan power; off only after fan power is off.\nC2 DNP (no glitch filter). Internal pull-up stays OFF."
+    "Sensor, Sanyo spec 9D0001H202: open collector,\n   VCE <= 27.6 V, IC <= 5 mA, VCE(sat) <= 0.8 V.\n   Spec suggests 2 pulses/rev; configured PPR stays 0\n   (unknown) until an optical RPM check on the specimen.\nDefault JP3 OPEN, JP4 OPEN: raw tach sees only TP8.\nJP3: R3 10k to 3V3 -> 0.33 mA sink (IC max 5 mA).\nJP4: R4 22k, D1 clamp, R5 470k. High ~3.09 V (VIH\n   2.475 V); low <= 0.76 V at VCE(sat) 0.8 V (VIL 0.825 V).\nBack-power if the tach lead is faulted to 26.4 V:\n   R4/D1 <= 1.2 mA, R3 (JP3) <= 2.7 mA into 3V3.\nRULE: controller 3V3 ON before JP3/JP4 close; keep it\n   on until fan power is off or JP3/JP4 are open.\nC2 DNP (no glitch filter). Internal pull-up stays OFF."
     (at 275.59 86.36 0)
     (effects (font (size 1.27 1.27)) (justify left top))
     (uuid "dd407949-ede8-5e5e-98c7-ff1fdef58ab2"))
