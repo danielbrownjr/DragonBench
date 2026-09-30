@@ -228,13 +228,21 @@ Threshold voltage is not used below as proof that Q1 switches.
 - Worst case is 2 mA × 2.0 Ω = **4 mV**, far below the ≤ 0.4 V requirement.
 - RDS(on) could be 200 Ω before the 0.4 V limit was reached.
 
-**Released (GPIO Hi-Z, reset, flashing, or unpowered):**
+**Released (intended state whenever GPIO6 is not driven high):**
 
-- R2 holds the gate at IGSS × 10 kΩ, **≤ 0.1 V** at IGSS ≤ 10 µA. IGSS is
+- R2 is there to hold the gate low whenever GPIO6 is undriven (Hi-Z, or the
+  controller unpowered): IGSS × 10 kΩ, **≤ 0.1 V** at IGSS ≤ 10 µA. IGSS is
   assumed; confirm it from the datasheet.
-- A stray 45 kΩ internal pull-up, which the firmware never enables, would
-  give 3.3 × 10/55 = 0.6 V.
-- The released state is confirmed on the scope at TP4/TP6 during bring-up,
+- What GPIO6 itself does during reset, early boot and flashing is not
+  known. Its reset-state pull has not been checked against the ESP32-S3
+  datasheet, and those phases have not been instrumented. If an internal
+  pull-up (about 45 kΩ assumed) were active then, the gate would sit near
+  3.3 × 10/55 = 0.6 V. The firmware never enables it on the gate.
+- Observed so far, with nothing attached: GPIO6 read 0 V on a DMM at idle,
+  after each run and after a reset, with the firmware running (PR #8,
+  `docs/TARGET_N16R8.md`).
+- Release through reset, flashing and a controller power cycle is not yet
+  proven. It is checked at TP4/TP6 during bring-up (BRINGUP step 7, item 6),
   not inferred from VGS(th).
 
 **What the stage omits:** no RC filter and no fixture pull-up on
@@ -325,7 +333,7 @@ Status key:
 | J1 | 4-pos 5.08 mm screw terminal | Controller link | 3.3 V, < 20 mA | Screw terminal for wires from the controller's terminals | PROVISIONAL (style) |
 | JP1 | 2-pin header + shunt, `GATE_EN` | Disconnects the controller from the gate; TP3 can take a signal generator | 3.3 V | Isolation point | FINAL |
 | R1 | 220 Ω 1 % 0805 | Gate series resistor | ≤ 15 mA peak | See calculations | PROVISIONAL (until Ciss confirmed) |
-| R2 | 10 kΩ 1 % 0805 | Gate pulldown | 0.32 mA | Holds Q1 off when the GPIO is Hi-Z/reset/unpowered | PROVISIONAL (confirm IGSS) |
+| R2 | 10 kΩ 1 % 0805 | Gate pulldown | 0.32 mA | Holds Q1 off when GPIO6 is undriven; reset/flashing behaviour to be confirmed at TP4 | PROVISIONAL (confirm IGSS) |
 | Q1 | onsemi NTR4003NT1G, SOT-23 | Open-drain sink on the fan control input | VDS ≤ 5.25 V, ID ≤ 2 mA | RDS(on) guaranteed at VGS 2.5 V; ESD-protected gate. Signal interface only, not a 24 V miswire device. | PROVISIONAL (datasheet values below) |
 | JP2 | 2-pin header + shunt, `PWM_LINE_EN` | Fully releases `FAN_PWM_RAW` | ≤ 5.25 V | Isolation point | FINAL |
 | JP3 | 2-pin header + shunt, `TACH_PU_EN` | Enables the tach pull-up | 3.3 V | Default open | FINAL |

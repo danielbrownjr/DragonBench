@@ -118,7 +118,7 @@ note(116.84, 86.36,
      '   Low level at 2 mA: 2 mA x 2.0 ohm (RDS(on) max, VGS 2.5 V) = 4 mV, << 0.4 V.',
      'R1 220R: gate charge current <= 3.3/220 = 15 mA peak; RC < 25 ns even at 100 pF, vs 20 us half-period.',
      '   Driven gate = VOH x 10k/10.22k = 3.23 V at 3.3 V (2.94 V at a 3.0 V rail): above the 2.5 V RDS(on) row.',
-     'R2 10k: GPIO Hi-Z/reset/unpowered -> gate = IGSS x 10k (<= 0.1 V at 10 uA, assumed). GPIO6 reset pull: unverified.',
+     'R2 10k: GPIO6 undriven -> gate = IGSS x 10k (<= 0.1 V at 10 uA, assumed). Reset/flash state unproven: check TP4.',
      'NOT rated for FAN_PWM_RAW landed on FAN_24V: verify lead identity before landing (BRINGUP step 2).',
      'No RC filter and no fixture pull-up on FAN_PWM_RAW. JP2 open = line fully released for open-line tests.')
 
