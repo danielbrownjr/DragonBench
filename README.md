@@ -55,6 +55,14 @@ access-point password`. To also join a 2.4 GHz network, open
 and password in a local, ignored `sdkconfig`. Credentials entered on the setup
 page persist in NVS and take precedence over Kconfig.
 
+The dashboard at `/` is read-only. `http://192.168.4.1/run` starts and aborts
+workloads and shows the device's run state: READY, RUNNING, ABORTING, PASS,
+FAIL or ABORTED, taken from `/api/v1/status`. It shows STARTING only while its
+own start request is in flight, and STALE or DISCONNECTED when the device stops
+answering. It offers Start only for workloads whose request it knows how to
+build; the device still validates every request and refuses a second run while
+one is active.
+
 Each board advertises its own mDNS name on both interfaces, derived from the
 same MAC suffix as its access point: `DragonBench-D685F0` answers as
 `http://dragonbench-d685f0.local/`. Several boards can share one network

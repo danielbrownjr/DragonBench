@@ -132,6 +132,26 @@ class ContractTests(unittest.TestCase):
             for token in forbidden_ci:
                 self.assertNotIn(token, lowered)
 
+    def test_run_page_is_served_and_linked_from_the_read_only_landing(self):
+        source = (ROOT / "firmware/targets/esp32s3/main/main.c").read_text()
+        self.assertIn('{.uri="/run",.method=HTTP_GET,.handler=run_page_get}', source)
+        web = (ROOT / "web/index.html").read_text()
+        for page in (web, _firmware_page("landing")):
+            self.assertIn('<a href="/run">', page)
+        self.assertIn('<a href="/">', _firmware_page("run_page"))
+
+    def test_run_page_has_no_external_dependency_or_innerhtml(self):
+        page = _firmware_page("run_page")
+        for token in ("http://", "https://", "cdn.", "//fonts.", "innerHTML"):
+            self.assertNotIn(token, page)
+
+    def test_run_page_writes_only_through_the_run_api(self):
+        page = _firmware_page("run_page")
+        self.assertIn("fetch('/api/v1/runs',{method:'POST'", page)
+        self.assertIn("'/abort',{method:'POST'", page)
+        self.assertEqual(page.count("method:'POST'"), 2)
+        self.assertNotIn("/api/v1/network", page)
+
     def test_actuator_exclusion(self):
         source = "\n".join(p.read_text(errors="ignore") for p in (ROOT / "firmware").rglob("*.[ch]"))
         for forbidden in ("HEATER_GPIO", "FAN_GPIO", "heater_set", "fan_set"):
